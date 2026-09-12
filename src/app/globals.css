@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════════════════════
+   INTERIORS BY B. — DESIGN SYSTEM
+   Tokens extracted verbatim from design/Interior By B.html.
+   Every page in this app consumes these; nothing defines its own
+   colour, gradient, or tracking.
+   ══════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ─── Taupe palette (prototype :root, lines 12–25) ─── */
+  --color-paper: #f4eee5; /* warm cream paper */
+  --color-paper-deep: #e8dfd0;
+  --color-cream: #ede5d8;
+  --color-ink: #1a1714; /* deep ink */
+  --color-ink-mid: #2e2823;
+  --color-ink-soft: #4a413a;
+  --color-taupe: #9a8876; /* primary accent */
+  --color-taupe-deep: #6e6052;
+  --color-taupe-light: #c2b3a1;
+  --color-taupe-rule: #b8a893;
+  --color-white-soft: #faf7f2;
+
+  /* ─── Type ─── */
+  --font-display: var(--font-comfortaa), ui-rounded, system-ui, sans-serif;
+
+  /* Label tracking is the signature of this system — three steps */
+  --tracking-label: 0.45em;
+  --tracking-label-wide: 0.55em;
+  --tracking-spine: 0.4em;
+  --tracking-tagline: 0.18em;
+
+  /* ─── Motion (prototype .rev, lines 575–581) ─── */
+  --ease-book: cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+/* ─── Cover surfaces: the covers are gradients, never flats ─── */
+@utility surface-cover-front {
+  background: linear-gradient(135deg, #1a1611 0%, #2c2419 50%, #1f1a14 100%);
+}
+@utility surface-cover-back {
+  background: linear-gradient(135deg, #18140f 0%, #221c16 50%, #1a1611 100%);
+}
+@utility surface-spine {
+  background: linear-gradient(to right, #0f0c09 0%, #1a1611 50%, #0f0c09 100%);
+  box-shadow:
+    inset 4px 0 8px rgba(0, 0, 0, 0.5),
+    inset -4px 0 8px rgba(0, 0, 0, 0.5);
+}
+
+/* The wordmark ships as dark artwork on transparency; the prototype
+   shows it on ink with this filter. */
+@utility wordmark-on-ink {
+  filter: invert(1) brightness(2.6);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-taupe);
+  color: var(--color-ink);
+}
+
+/* Visible, on-brand focus ring — the prototype had none. */
+:focus-visible {
+  outline: 1px solid var(--color-taupe);
+  outline-offset: 4px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REVEAL — prototype .rev / .rev-d1…d5 (lines 575–581)
+   Motion is opt-in: without it, content is simply visible.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Reduced motion: no loader, and .rev never gets defined below, so the
+   page renders plainly visible with no timing involved. */
+@media (prefers-reduced-motion: reduce) {
+  [data-loader] {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rev {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.85s ease,
+      transform 0.85s ease;
+  }
+  /* The Stage flips one attribute when the loader finishes; every .rev
+     beneath it animates in on its own delay step. */
+  [data-revealed] .rev {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .rev-d1 {
+    transition-delay: 0.1s;
+  }
+  .rev-d2 {
+    transition-delay: 0.22s;
+  }
+  .rev-d3 {
+    transition-delay: 0.36s;
+  }
+  .rev-d4 {
+    transition-delay: 0.5s;
+  }
+  .rev-d5 {
+    transition-delay: 0.65s;
+  }
+
+  /* ─── LOADER — prototype keyframes, lines 86–87 ─── */
+  @keyframes loaderFade {
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes loaderLine {
+    to {
+      width: 80px;
+    }
+  }
+  .loader-logo {
+    opacity: 0;
+    animation: loaderFade 0.45s ease 0.05s forwards;
+  }
+  .loader-line {
+    width: 0;
+    animation: loaderLine 0.4s ease 0.3s forwards;
+  }
+  .loader-text {
+    opacity: 0;
+    animation: loaderFade 0.35s ease 0.5s forwards;
+  }
+}

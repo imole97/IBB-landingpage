@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interiors By B.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* Taupe palette */
+    --paper:       #F4EEE5;   /* warm cream paper */
+    --paper-deep:  #E8DFD0;   /* slightly darker page */
+    --cream:       #EDE5D8;
+    --ink:         #1A1714;   /* deep ink */
+    --ink-mid:     #2E2823;
+    --ink-soft:    #4A413A;
+    --taupe:       #9A8876;   /* primary accent — taupe */
+    --taupe-deep:  #6E6052;
+    --taupe-light: #C2B3A1;
+    --taupe-rule:  #B8A893;
+    --white-soft:  #FAF7F2;
+  }
+
+  html { overflow: hidden; }
+
+  body {
+    background: var(--ink);
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    color: var(--ink);
+    overflow: hidden;
+    cursor: none;
+    height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── CURSOR ─── */
+  #cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    background: var(--paper);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: difference;
+  }
+  #cursor.expand { width: 40px; height: 40px; }
+
+  /* ─── LOADER ─── */
+  #loader {
+    position: fixed; inset: 0;
+    background: var(--ink);
+    z-index: 8000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s;
+  }
+  #loader.hide { opacity: 0; visibility: hidden; }
+  .loader-logo {
+    width: 280px;
+    filter: invert(1) brightness(2.5);
+    opacity: 0;
+    animation: loaderFade 1.2s ease 0.3s forwards;
+  }
+  .loader-line {
+    width: 0; height: 1px;
+    background: var(--taupe);
+    margin-top: 32px;
+    animation: loaderLine 1s ease 1s forwards;
+  }
+  .loader-text {
+    font-family: 'Comfortaa', sans-serif;
+    font-size: 13px; font-weight: 500;
+    letter-spacing: 0.45em;
+    color: var(--taupe-light);
+    text-transform: uppercase;
+    margin-top: 24px;
+    opacity: 0;
+    animation: loaderFade 0.8s ease 1.6s forwards;
+  }
+  @keyframes loaderFade { to { opacity: 1; } }
+  @keyframes loaderLine { to { width: 80px; } }
+
+  /* ─── BOOK STAGE ─── */
+  #book-stage {
+    position: fixed; inset: 0;
+    perspective: 2600px;
+    perspective-origin: 50% 50%;
+    overflow: hidden;
+    background: var(--ink);
+  }
+
+  /* Spine shadow center of stage */
+  #book-stage::after {
+    content: '';
+    position: absolute; top: 0; bottom: 0;
+    left: 50%; transform: translateX(-50%);
+    width: 60px;
+    background: linear-gradient(to right,
+      rgba(0,0,0,0.10) 0%,
+      rgba(0,0,0,0.30) 50%,
+      rgba(0,0,0,0.10) 100%);
+    pointer-events: none; z-index: 0; opacity: 0.5;
+  }
+
+  /* ─── PAGES ─── */
+  .book-page {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    overflow-y: auto; overflow-x: hidden;
+    transform-style: preserve-3d;
+    transform-origin: left center;
+    will-change: transform;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    backface-visibility: hidden;
+  }
+  .book-page::-webkit-scrollbar { display: none; }
+
+  .book-page.page-current  { z-index: 10; transform: rotateY(0deg);    pointer-events: all; }
+  .book-page.page-past     { z-index: 5;  transform: rotateY(-180deg); pointer-events: none; }
+  .book-page.page-future   { z-index: 1;  transform: rotateY(0deg);    pointer-events: none; }
+
+  .book-page.flipping-out {
+    z-index: 20;
+    animation: flipOut 0.85s cubic-bezier(0.645,0.045,0.355,1) forwards;
+  }
+  .book-page.flipping-back-out {
+    z-index: 20;
+    animation: flipBackOut 0.85s cubic-bezier(0.645,0.045,0.355,1) forwards;
+  }
+  @keyframes flipOut {
+    0%   { transform: rotateY(0);     box-shadow: none; }
+    45%  { transform: rotateY(-55deg); box-shadow: -40px 0 70px rgba(0,0,0,0.5); }
+    100% { transform: rotateY(-180deg); box-shadow: none; }
+  }
+  @keyframes flipBackOut {
+    0%   { transform: rotateY(-180deg); }
+    45%  { transform: rotateY(-125deg); box-shadow: -40px 0 70px rgba(0,0,0,0.5); }
+    100% { transform: rotateY(0); box-shadow: none; }
+  }
+  .book-page.flipping-out::after,
+  .book-page.flipping-back-out::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to right,
+      rgba(0,0,0,0) 60%,
+      rgba(0,0,0,0.25) 80%,
+      rgba(0,0,0,0.55) 100%);
+    pointer-events: none; z-index: 100;
+  }
+
+  /* ─── NAV ─── */
+  #nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 500;
+    padding: 28px 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: background 0.4s, padding 0.4s;
+  }
+  .nav-logo {
+    width: 150px;
+    cursor: pointer;
+    transition: filter 0.5s, opacity 0.5s;
+  }
+  .nav-logo.dark-bg { filter: invert(1) brightness(2.5); }
+  .nav-logo.light-bg { filter: none; }
+
+  .nav-menu-btn {
+    background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 8px;
+  }
+  .nav-menu-btn span {
+    display: block; width: 28px; height: 1px;
+    background: var(--paper);
+    transition: all 0.4s;
+  }
+  .nav-menu-btn.light-bg span { background: var(--ink); }
+  .nav-menu-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-menu-btn.open span:nth-child(2) { opacity: 0; }
+  .nav-menu-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* ─── MENU OVERLAY ─── */
+  #menu-overlay {
+    position: fixed; inset: 0;
+    background: var(--ink);
+    z-index: 400;
+    display: flex;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.6s ease, visibility 0.6s;
+  }
+  #menu-overlay.open { opacity: 1; visibility: visible; }
+
+  .menu-spine {
+    width: 80px; min-width: 80px;
+    background: var(--ink-mid);
+    display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.5em;
+    color: var(--taupe);
+    text-transform: uppercase;
+  }
+
+  .menu-content {
+    flex: 1;
+    display: grid; grid-template-columns: 1fr 1fr;
+    padding: 80px 64px;
+    gap: 64px;
+  }
+
+  .menu-chapters {
+    display: flex; flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .menu-label {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 13px; letter-spacing: 0.5em;
+    color: var(--taupe-light); text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+
+  .menu-item {
+    display: flex; align-items: baseline; gap: 24px;
+    cursor: pointer; padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transition: all 0.3s;
+    text-decoration: none;
+    position: relative;
+  }
+  .menu-item:hover { padding-left: 12px; }
+  .menu-item:hover .menu-item-title { color: var(--taupe); }
+  .menu-item.active { padding-left: 16px; }
+  .menu-item.active::before {
+    content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--taupe);
+  }
+  .menu-item.active .menu-item-title { color: var(--taupe); }
+  .menu-item.active .menu-item-sub { color: var(--taupe-light); }
+
+  .menu-item-num {
+    display: none;  /* removed roman numerals */
+  }
+  .menu-item-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(28px, 3.4vw, 44px);
+    color: var(--paper);
+    transition: color 0.4s;
+  }
+  .menu-item-sub {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    color: var(--taupe-light);
+    margin-left: auto;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  .menu-preview {
+    display: flex; flex-direction: column;
+    justify-content: flex-end;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    padding-left: 64px;
+  }
+  .menu-preview-icon {
+    /* Bookmark icon — replaces the logo previously on this side */
+    width: 96px; height: 96px;
+    margin-bottom: 32px;
+    color: var(--taupe);
+  }
+  .menu-preview-quote {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: 20px;
+    color: var(--taupe-light);
+    line-height: 1.7;
+    max-width: 380px;
+    margin-bottom: 24px;
+  }
+  .menu-preview-attr {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 13px; letter-spacing: 0.4em;
+    color: var(--taupe); text-transform: uppercase;
+  }
+
+  /* ─── PAGE HINTS ─── */
+  #hint-prev, #hint-next {
+    position: fixed; bottom: 36px; z-index: 300;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 13px; letter-spacing: 0.4em; text-transform: uppercase;
+    color: var(--taupe);
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; opacity: 0;
+    transition: opacity 0.6s, gap 0.3s;
+    pointer-events: none;
+  }
+  #hint-prev { left: 56px; }
+  #hint-next { right: 56px; }
+  #hint-prev.vis, #hint-next.vis { opacity: 1; pointer-events: all; }
+  #hint-prev:hover, #hint-next:hover { gap: 18px; }
+  #hint-prev::before { content: '←'; font-size: 18px; }
+  #hint-next::after  { content: '→'; font-size: 18px; }
+  body.light-hints #hint-prev,
+  body.light-hints #hint-next { color: var(--taupe-deep); }
+
+  /* ─── PAGE COUNTER ─── */
+  #counter {
+    position: fixed; bottom: 36px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 13px; letter-spacing: 0.4em;
+    color: var(--taupe);
+    z-index: 300; pointer-events: none;
+    text-transform: uppercase;
+  }
+  body.light-hints #counter { color: var(--taupe-deep); }
+
+  /* ═══════════════════════════════════════════════════════════
+     PAGE 0 — COVER (book-spread: front cover | spine | back)
+  ═══════════════════════════════════════════════════════════ */
+  .cover-spread {
+    min-height: 100vh;
+    background: var(--ink);
+    display: grid;
+    grid-template-columns: 1fr 70px 1fr;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Texture overlay */
+  .cover-spread::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at top left, rgba(154,136,118,0.08), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(154,136,118,0.06), transparent 60%);
+    pointer-events: none;
+  }
+
+  /* BACK COVER (left in the spread, but it's the "back" of the book) */
+  .cover-back {
+    background: linear-gradient(135deg, #18140F 0%, #221C16 50%, #1A1611 100%);
+    padding: 80px 72px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    border-right: 1px solid rgba(255,255,255,0.04);
+  }
+  .cover-back-corner {
+    position: absolute; top: 32px; left: 32px;
+    width: 48px; height: 48px;
+    border-top: 1px solid var(--taupe); border-left: 1px solid var(--taupe);
+    opacity: 0.6;
+  }
+  .cover-back-corner-br {
+    position: absolute; bottom: 32px; right: 32px;
+    width: 48px; height: 48px;
+    border-bottom: 1px solid var(--taupe); border-right: 1px solid var(--taupe);
+    opacity: 0.6;
+  }
+  .cover-back-label {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 12px; letter-spacing: 0.5em;
+    color: var(--taupe); text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .cover-back-portrait {
+    width: 180px; height: 220px;
+    background: linear-gradient(160deg, #2C2620, #3A322A);
+    border: 1px solid rgba(154,136,118,0.25);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover-back-portrait::after {
+    content: '';
+    position: absolute; inset: 8px;
+    border: 1px solid rgba(154,136,118,0.15);
+    pointer-events: none;
+  }
+  .cover-back-portrait img {
+    width: 140px;
+    filter: invert(1) brightness(2.5);
+    opacity: 0.85;
+  }
+  .cover-back-bio {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 16px; line-height: 1.85;
+    color: rgba(255,255,255,0.65);
+    max-width: 380px;
+    text-wrap: pretty;
+  }
+  .cover-back-bio em { color: var(--taupe-light); font-style: normal; font-weight: 500; }
+  .cover-back-meta {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .cover-back-isbn {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 13px; letter-spacing: 0.3em;
+    color: var(--taupe); text-transform: uppercase;
+  }
+  .cover-back-tagline {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: 17px; color: rgba(255,255,255,0.45);
+  }
+
+  /* SPINE (the center thin column) */
+  .cover-spine-column {
+    background: linear-gradient(to right,
+      #0F0C09 0%, #1A1611 50%, #0F0C09 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    padding: 60px 0;
+    border-right: 1px solid rgba(0,0,0,0.4);
+    border-left: 1px solid rgba(0,0,0,0.4);
+    box-shadow:
+      inset 4px 0 8px rgba(0,0,0,0.5),
+      inset -4px 0 8px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .cover-spine-column::before, .cover-spine-column::after {
+    content: '';
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: 32px; height: 1px;
+    background: var(--taupe); opacity: 0.5;
+  }
+  .cover-spine-column::before { top: 32px; }
+  .cover-spine-column::after  { bottom: 32px; }
+
+  .cover-spine-title {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 16px; letter-spacing: 0.6em;
+    color: var(--taupe-light);
+    text-transform: uppercase;
+    transform: rotate(180deg);
+  }
+  .cover-spine-ornament {
+    width: 8px; height: 8px;
+    transform: rotate(45deg);
+    background: var(--taupe);
+    opacity: 0.7;
+  }
+  .cover-spine-bottom {
+    writing-mode: vertical-rl;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 12px; letter-spacing: 0.4em;
+    color: var(--taupe);
+    text-transform: uppercase;
+    transform: rotate(180deg);
+  }
+
+  /* FRONT COVER (right side) */
+  .cover-front {
+    background: linear-gradient(135deg, #1A1611 0%, #2C2419 50%, #1F1A14 100%);
+    padding: 80px 72px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative;
+    text-align: center;
+  }
+  .cover-front-corner {
+    position: absolute; top: 32px; right: 32px;
+    width: 48px; height: 48px;
+    border-top: 1px solid var(--taupe); border-right: 1px solid var(--taupe);
+    opacity: 0.6;
+  }
+  .cover-front-corner-bl {
+    position: absolute; bottom: 32px; left: 32px;
+    width: 48px; height: 48px;
+    border-bottom: 1px solid var(--taupe); border-left: 1px solid var(--taupe);
+    opacity: 0.6;
+  }
+  .cover-front-edition {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 13px; letter-spacing: 0.55em;
+    color: var(--taupe); text-transform: uppercase;
+    margin-bottom: 48px;
+  }
+  .cover-front-logo {
+    width: clamp(220px, 26vw, 360px);
+    filter: invert(1) brightness(2.6);
+    margin-bottom: 36px;
+  }
+  .cover-front-rule {
+    width: 80px; height: 1px;
+    background: var(--taupe);
+    margin: 0 auto 28px;
+  }
+  .cover-front-tagline {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: clamp(17px, 1.5vw, 21px);
+    letter-spacing: 0.18em;
+    color: var(--paper);
+    margin-bottom: 56px;
+    text-transform: none;
+  }
+  .cover-front-cta {
+    display: inline-flex; align-items: center; gap: 16px;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 14px; letter-spacing: 0.45em;
+    text-transform: uppercase;
+    color: var(--paper);
+    cursor: pointer; text-decoration: none;
+    transition: gap 0.4s;
+  }
+  .cover-front-cta:hover { gap: 28px; }
+  .cover-front-cta-line {
+    width: 48px; height: 1px;
+    background: var(--taupe);
+    transition: width 0.4s;
+  }
+  .cover-front-cta:hover .cover-front-cta-line { width: 72px; }
+
+  /* ═══════════════════════════════════════════════════════════
+     COMMON: chapter spine + headers (BIGGER spine text)
+  ═══════════════════════════════════════════════════════════ */
+  .chapter-spine {
+    background: var(--paper-deep);
+    display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 16px;            /* BIGGER spine text */
+    letter-spacing: 0.5em;
+    color: var(--taupe-deep);
+    text-transform: uppercase;
+    border-right: 1px solid rgba(0,0,0,0.08);
+    min-width: 80px;
+  }
+  .chapter-spine.dark {
+    background: var(--ink-mid);
+    color: var(--taupe);
+    border-right-color: rgba(255,255,255,0.05);
+  }
+
+  .chapter-label {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 14px; letter-spacing: 0.5em;
+    color: var(--taupe); text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  /* Reveal */
+  .rev { opacity: 0; transform: translateY(24px); transition: opacity 0.85s ease, transform 0.85s ease; }
+  .rev.vis { opacity: 1; transform: translateY(0); }
+  .rev-d1 { transition-delay: 0.1s; }
+  .rev-d2 { transition-delay: 0.22s; }
+  .rev-d3 { transition-delay: 0.36s; }
+  .rev-d4 { transition-delay: 0.5s; }
+  .rev-d5 { transition-delay: 0.65s; }
+
+  /* ═══════════════════════════════════════════════════════════
+     PAGE 1 — FOREWORD (Option A)
+  ═══════════════════════════════════════════════════════════ */
+  .p-foreword {
+    background: var(--paper);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr;
+    color: var(--ink);
+    position: relative;
+  }
+  .p-foreword-left {
+    padding: 96px 64px;
+    border-right: 1px solid rgba(0,0,0,0.07);
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+  }
+  .p-foreword-right {
+    padding: 96px 64px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+  .p-foreword-headline {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(48px, 6vw, 76px);
+    line-height: 1.05;
+    color: var(--ink);
+    margin-bottom: 48px;
+    letter-spacing: -0.01em;
+  }
+  .p-foreword-headline em {
+    font-style: normal;
+    font-weight: 500;
+    color: var(--taupe);
+    display: block;
+  }
+  .ornament {
+    display: flex; align-items: center; gap: 14px;
+    margin: 28px 0;
+  }
+  .ornament::before, .ornament::after {
+    content: ''; flex: 0 1 64px; height: 1px;
+    background: var(--taupe); opacity: 0.6;
+  }
+  .ornament-diamond {
+    width: 6px; height: 6px;
+    background: var(--taupe);
+    transform: rotate(45deg);
+  }
+  .page-body {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 17px;
+    line-height: 1.85;
+    color: var(--ink-soft);
+    max-width: 500px;
+    text-wrap: pretty;
+  }
+  .page-body + .page-body { margin-top: 24px; }
+  .page-body.large {
+    font-size: 21px; line-height: 1.7;
+    color: var(--ink-mid);
+    font-weight: 300;
+  }
+  .foreword-pullquote {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(22px, 2.4vw, 30px);
+    line-height: 1.55;
+    color: var(--ink-mid);
+    border-left: 2px solid var(--taupe);
+    padding-left: 28px;
+    margin-bottom: 40px;
+  }
+  .page-num {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 13px; letter-spacing: 0.4em;
+    color: var(--taupe-deep); text-transform: uppercase;
+    display: flex; align-items: center; gap: 16px;
+    margin-top: 40px;
+  }
+  .page-num::before { content: ''; flex: 0 0 40px; height: 1px; background: var(--taupe); opacity: 0.5; }
+
+  /* ═══════════════════════════════════════════════════════════
+     PAGE 2 — INTRODUCTION (Option A) — dark with imagery
+  ═══════════════════════════════════════════════════════════ */
+  .p-intro {
+    background: var(--ink);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr;
+    color: var(--paper);
+  }
+  .p-intro-image {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #2A211A, #3A2D22);
+  }
+  .interior-art {
+    position: absolute; inset: 0;
+    overflow: hidden;
+  }
+  .interior-art::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, #1a1410 0%, #2e2018 30%, #241a12 60%, #1a1008 100%);
+  }
+  .ia-wall-l {
+    position: absolute; top: 0; left: 0; bottom: 40%;
+    width: 45%; background: linear-gradient(to right, #1a1208, #2a1e12);
+  }
+  .ia-wall-r {
+    position: absolute; top: 0; right: 0; bottom: 40%;
+    width: 55%; background: linear-gradient(to left, #241810, #321e12);
+  }
+  .ia-floor {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 40%; background: linear-gradient(to top, #3a2c20, #2a1e14);
+  }
+  .ia-window {
+    position: absolute; top: 15%; right: 15%;
+    width: 28%; height: 45%;
+    background: linear-gradient(135deg, rgba(154,136,118,0.18), rgba(248,241,224,0.06));
+    border: 1px solid rgba(154,136,118,0.2);
+  }
+  .ia-window::before {
+    content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px;
+    background: rgba(154,136,118,0.15);
+  }
+  .ia-window::after {
+    content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px;
+    background: rgba(154,136,118,0.15);
+  }
+  .ia-sofa {
+    position: absolute; bottom: 38%; left: 8%;
+    width: 55%; height: 16%;
+    background: #4a3828;
+    border-radius: 4px 4px 0 0;
+  }
+  .ia-light {
+    position: absolute; top: 5%; left: 50%; transform: translateX(-50%);
+    width: 1px; height: 25%;
+    background: rgba(154,136,118,0.4);
+  }
+  .ia-light::after {
+    content: '';
+    position: absolute; bottom: -16px; left: -20px;
+    width: 40px; height: 24px;
+    background: radial-gradient(circle, rgba(154,136,118,0.5) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .intro-image-label {
+    position: absolute; top: 40px; left: 40px;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 13px; letter-spacing: 0.45em;
+    color: rgba(154,136,118,0.7); text-transform: uppercase;
+    z-index: 2;
+  }
+  .p-intro-text {
+    padding: 100px 80px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+  }
+  .intro-pullquote {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(26px, 3vw, 38px);
+    line-height: 1.4;
+    color: var(--paper);
+    border-left: 2px solid var(--taupe);
+    padding-left: 32px;
+    margin-bottom: 48px;
+  }
+  .intro-pullquote em { font-style: normal; color: var(--taupe-light); font-weight: 400; }
+  .p-intro-text .page-body {
+    color: rgba(255,255,255,0.65);
+    max-width: 540px;
+  }
+  .cta-link {
+    display: inline-flex; align-items: center; gap: 16px;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 13px; letter-spacing: 0.45em; text-transform: uppercase;
+    color: var(--paper);
+    cursor: pointer; text-decoration: none;
+    margin-top: 48px;
+    transition: gap 0.4s;
+  }
+  .cta-link::after {
+    content: ''; width: 48px; height: 1px;
+    background: var(--taupe);
+    transition: width 0.4s;
+  }
+  .cta-link:hover { gap: 24px; }
+  .cta-link:hover::after { width: 80px; }
+  .cta-link.dark { color: var(--ink); }
+  .cta-link.dark::after { background: var(--ink); }
+
+  /* ═══════════════════════════════════════════════════════════
+     PAGE 3 — CHAPTERS / PORTFOLIO (Option B style — white + masonry)
+  ═══════════════════════════════════════════════════════════ */
+  .p-chapters {
+    background: var(--white-soft);
+    min-height: 100vh;
+    color: var(--ink);
+    position: relative;
+  }
+  .p-chapters-inner {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+  }
+  .p-chapters-content {
+    padding: 96px 80px 80px;
+  }
+  .chapters-header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding-bottom: 56px;
+    margin-bottom: 64px;        /* SPACE between title and content */
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .chapters-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(60px, 9vw, 120px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .chapters-title em {
+    display: block;
+    font-style: normal;
+    font-weight: 400;
+    color: var(--taupe);
+    font-size: 0.5em;
+    letter-spacing: 0.04em;
+    margin-top: 24px;          /* SPACE between Chapters and The Collection */
+  }
+  .chapters-subtitle {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--ink-soft);
+    max-width: 280px;
+    text-align: right;
+    line-height: 1.7;
+    text-wrap: pretty;
+  }
+  .chapters-masonry {
+    column-count: 3;
+    column-gap: 24px;
+  }
+  .chapter-item {
+    break-inside: avoid;
+    margin-bottom: 24px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s ease;
+  }
+  .chapter-item:hover { transform: translateY(-4px); }
+  .chapter-img {
+    width: 100%;
+    display: block;
+    position: relative;
+    overflow: hidden;
+  }
+  .chapter-overlay {
+    position: absolute; inset: 0;
+    background: rgba(26,23,20,0.78);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .chapter-item:hover .chapter-overlay { opacity: 1; }
+  .chapter-overlay-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 22px; color: var(--paper); text-align: center;
+  }
+  .chapter-overlay-sub {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 12px; letter-spacing: 0.5em;
+    color: var(--taupe); text-transform: uppercase;
+    margin-top: 10px;
+  }
+  .chapter-caption {
+    padding: 14px 0 4px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .chapter-caption-name {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 16px; color: var(--ink);
+  }
+  .chapter-caption-meta {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: 11px; letter-spacing: 0.3em;
+    color: var(--taupe-deep); text-transform: uppercase;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PAGE 4 — VOLUMES (Option B style — dark 4-column)
+  ═══════════════════════════════════════════════════════════ */
+  .p-volumes {
+    background: var(--ink);
+    min-height: 100vh;
+    color: var(--paper);
+    display: grid;
+    grid-template-columns: 80px 1fr;
+  }
+  .p-volumes-content {
+    display: flex; flex-direction: column;
+  }
+  .volumes-header {
+    padding: 96px 80px 56px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 48px;
+  }
+  .volumes-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(56px, 8vw, 104px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--paper);
+  }
+  .volumes-title em {
+    display: block;
+    font-style: normal;
+    font-weight: 400;
+    color: var(--taupe);
+    font-size: 0.5em;
+    letter-spacing: 0.04em;
+    margin-top: 24px;
+  }
+  .volumes-lead {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--taupe-light);
+    max-width: 280px; text-align: right; line-height: 1.7;
+  }
+  .volumes-grid {
+    flex: 1;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+  }
+  .volume-col {
+    padding: 56px 36px;
+    border-right: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column;
+    cursor: pointer;
+    position: relative; overflow: hidden;
+    transition: background 0.4s;
+  }
+  .volume-col:last-child { border-right: none; }
+  .volume-col::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: var(--taupe);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.5s ease;
+  }
+  .volume-col:hover { background: rgba(255,255,255,0.025); }
+  .volume-col:hover::before { transform: scaleX(1); }
+  .volume-bg-num {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(64px, 9vw, 110px);
+    line-height: 1;
+    color: rgba(154,136,118,0.10);
+    margin-bottom: auto;
+    letter-spacing: -0.04em;
+  }
+  .volume-label {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 13px; letter-spacing: 0.5em;
+    color: var(--taupe); text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .volume-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: clamp(20px, 1.8vw, 24px);
+    color: var(--paper);
+    margin-bottom: 20px;
+    line-height: 1.3;
+  }
+  .volume-body {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 14px; line-height: 1.85;
+    color: rgba(255,255,255,0.55);
+    text-wrap: pretty;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PAGE 5 — APPENDIX / PROCESS (Option B style — paper 6-col)
+  ═══════════════════════════════════════════════════════════ */
+  .p-appendix {
+    background: var(--paper);
+    min-height: 100vh;
+    color: var(--ink);
+    display: grid;
+    grid-template-columns: 80px 1fr;
+  }
+  .p-appendix-content { display: flex; flex-direction: column; }
+  .appendix-header {
+    padding: 96px 80px 56px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 48px;
+  }
+  .appendix-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(56px, 8vw, 104px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .appendix-title em {
+    display: block;
+    font-style: normal;
+    font-weight: 400;
+    color: var(--taupe);
+    font-size: 0.5em;
+    letter-spacing: 0.04em;
+    margin-top: 24px;
+  }
+  .appendix-lead {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--ink-soft);
+    max-width: 320px; text-align: right; line-height: 1.7;
+    text-wrap: pretty;
+  }
+  .process-grid {
+    flex: 1;
+    display: grid; grid-template-columns: repeat(6, 1fr);
+  }
+  .process-col {
+    padding: 48px 28px;
+    border-right: 1px solid rgba(0,0,0,0.08);
+    display: flex; flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.4s;
+    cursor: default;
+  }
+  .process-col:last-child { border-right: none; }
+  .process-col:hover { background: rgba(0,0,0,0.015); }
+  /* CLEAR appendix box number — bigger + more opacity */
+  .process-bg-num {
+    position: absolute;
+    bottom: -8px; right: 12px;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(110px, 11vw, 170px);
+    line-height: 0.85;
+    color: rgba(154,136,118,0.20);
+    letter-spacing: -0.05em;
+    user-select: none; pointer-events: none;
+  }
+  .process-label {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 15px;            /* bigger DRAFT label */
+    letter-spacing: 0.4em;
+    color: var(--taupe);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    position: relative; z-index: 2;
+  }
+  .process-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: clamp(17px, 1.7vw, 21px);
+    color: var(--ink);
+    margin-bottom: 20px;
+    line-height: 1.3;
+    position: relative; z-index: 2;
+  }
+  .process-body {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 14px; line-height: 1.85;
+    color: var(--ink-soft);
+    text-wrap: pretty;
+    position: relative; z-index: 2;
+    flex: 1;
+  }
+  .process-line {
+    width: 28px; height: 1px;
+    background: var(--taupe);
+    margin-top: auto;
+    opacity: 0.6;
+    position: relative; z-index: 2;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PAGE 6 — ANNOTATIONS / TESTIMONIALS (Option A — dark)
+  ═══════════════════════════════════════════════════════════ */
+  .p-annotations {
+    background: var(--ink);
+    min-height: 100vh;
+    color: var(--paper);
+    padding: 120px 80px 120px 160px;
+    position: relative;
+  }
+  .annotations-eyebrow {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 14px; letter-spacing: 0.5em;
+    color: var(--taupe); text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .annotations-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(48px, 6.5vw, 88px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    color: var(--paper);
+    margin-bottom: 80px;
+  }
+  .annotations-title em {
+    display: block; font-style: normal; font-weight: 500;
+    color: var(--taupe);
+  }
+  .testimonials-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+  .testimonial {
+    position: relative;
+    padding: 40px 32px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.015);
+  }
+  .testimonial::before {
+    content: '“';
+    position: absolute;
+    top: -28px; left: 24px;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 700;
+    font-size: 90px; line-height: 1;
+    color: var(--taupe); opacity: 0.6;
+  }
+  .testimonial-text {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.85;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 32px;
+    text-wrap: pretty;
+    margin-top: 8px;
+  }
+  .testimonial-author {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 12px; letter-spacing: 0.45em;
+    color: var(--taupe); text-transform: uppercase;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PAGE 7 — THE INDEX / FAQ (Option A — paper)
+  ═══════════════════════════════════════════════════════════ */
+  .p-index {
+    background: var(--paper);
+    min-height: 100vh;
+    color: var(--ink);
+    display: grid;
+    grid-template-columns: 80px 1fr;
+  }
+  .index-content { padding: 96px 80px; }
+  .index-header {
+    padding-bottom: 56px;
+    margin-bottom: 56px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .index-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(56px, 8vw, 104px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .index-title em {
+    display: block; font-style: normal; font-weight: 400;
+    color: var(--taupe);
+    font-size: 0.5em;
+    letter-spacing: 0.04em;
+    margin-top: 24px;
+  }
+  .index-sub {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--ink-soft);
+    max-width: 280px; text-align: right; line-height: 1.7;
+  }
+  .faq-list { max-width: 880px; }
+  .faq-item {
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .faq-q {
+    padding: 28px 0;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 500;
+    font-size: clamp(17px, 1.5vw, 20px);
+    color: var(--ink);
+    gap: 24px;
+    user-select: none;
+    transition: color 0.3s;
+  }
+  .faq-q:hover { color: var(--taupe); }
+  .faq-icon {
+    font-size: 24px; transition: transform 0.4s;
+    color: var(--taupe);
+    flex-shrink: 0;
+    font-weight: 300;
+  }
+  .faq-item.open .faq-icon { transform: rotate(45deg); }
+  .faq-a {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.5s ease, padding 0.5s;
+  }
+  .faq-item.open .faq-a { max-height: 320px; padding-bottom: 28px; }
+  .faq-a-inner {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 16px; line-height: 1.85;
+    color: var(--ink-soft);
+    text-wrap: pretty;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PAGE 8 — WRITE TO US (Option B layout, A's dark + taupe palette)
+  ═══════════════════════════════════════════════════════════ */
+  .p-write {
+    background: var(--ink);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    color: var(--paper);
+  }
+  .p-write-left {
+    padding: 100px 72px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    background: linear-gradient(135deg, #1A1611, #221C16);
+    position: relative;
+  }
+  .write-corner-tr {
+    position: absolute; top: 32px; right: 32px;
+    width: 48px; height: 48px;
+    border-top: 1px solid var(--taupe); border-right: 1px solid var(--taupe);
+    opacity: 0.5;
+  }
+  .write-eyebrow {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 14px; letter-spacing: 0.5em;
+    color: var(--taupe); text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+  .write-title {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 300;
+    font-size: clamp(40px, 5.5vw, 72px);
+    line-height: 1.05;
+    color: var(--paper);
+    margin-bottom: 36px;
+    letter-spacing: -0.01em;
+  }
+  .write-title em {
+    display: block; font-style: normal; font-weight: 500;
+    color: var(--taupe);
+  }
+  .write-body {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.55);
+    max-width: 400px;
+    margin-bottom: 56px;
+  }
+  .write-details {
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .write-detail-label {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 12px; letter-spacing: 0.5em;
+    color: var(--taupe); text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .write-detail-val {
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 17px; color: rgba(255,255,255,0.75);
+  }
+  .p-write-right {
+    padding: 100px 72px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    background: var(--ink-mid);
+  }
+  .form-label {
+    display: block;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 12px; letter-spacing: 0.45em;
+    color: var(--taupe); text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .form-input, .form-textarea {
+    width: 100%;
+    background: transparent;
+    border: none; border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding: 12px 0;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    color: var(--paper);
+    outline: none;
+    transition: border-color 0.3s;
+    margin-bottom: 32px;
+  }
+  .form-input::placeholder, .form-textarea::placeholder { color: rgba(255,255,255,0.3); }
+  .form-input:focus, .form-textarea:focus { border-color: var(--taupe); }
+  .form-textarea { resize: none; min-height: 90px; }
+  .form-submit {
+    display: inline-flex; align-items: center; gap: 16px;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 600;
+    font-size: 13px; letter-spacing: 0.45em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--taupe);
+    border: none; cursor: pointer;
+    padding: 20px 44px;
+    margin-top: 12px;
+    transition: background 0.3s, transform 0.3s;
+  }
+  .form-submit:hover { background: var(--taupe-light); transform: translateY(-2px); }
+  .form-success {
+    display: none;
+    margin-top: 24px;
+    font-family: 'Comfortaa', sans-serif;
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--taupe);
+  }
+</style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div id="cursor"></div>
+
+<!-- Loader -->
+<div id="loader">
+  <img src="assets/logo.png" class="loader-logo" alt="Interiors By B.">
+  <div class="loader-line"></div>
+  <div class="loader-text">London &middot; Lagos &middot; 2026</div>
+</div>
+
+<!-- Nav -->
+<nav id="nav">
+  <img src="assets/logo.png" class="nav-logo dark-bg" id="navLogo" alt="Interiors By B." onclick="gp(0)">
+  <button class="nav-menu-btn" id="menuBtn" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Menu overlay (Table of Contents) -->
+<div id="menu-overlay" role="dialog" aria-modal="true">
+  <div class="menu-spine">Interiors By B.</div>
+  <div class="menu-content">
+    <div class="menu-chapters">
+      <div class="menu-label">Table of Contents</div>
+      <a class="menu-item" data-target="0" onclick="closeMenu(); gp(0)">
+        <span class="menu-item-title">Cover</span>
+        <span class="menu-item-sub">Front matter</span>
+      </a>
+      <a class="menu-item" data-target="1" onclick="closeMenu(); gp(1)">
+        <span class="menu-item-title">Foreword</span>
+        <span class="menu-item-sub">Brand statement</span>
+      </a>
+      <a class="menu-item" data-target="2" onclick="closeMenu(); gp(2)">
+        <span class="menu-item-title">Introduction</span>
+        <span class="menu-item-sub">Our story</span>
+      </a>
+      <a class="menu-item" data-target="3" onclick="closeMenu(); gp(3)">
+        <span class="menu-item-title">Chapters</span>
+        <span class="menu-item-sub">Portfolio</span>
+      </a>
+      <a class="menu-item" data-target="4" onclick="closeMenu(); gp(4)">
+        <span class="menu-item-title">Volumes</span>
+        <span class="menu-item-sub">Services</span>
+      </a>
+      <a class="menu-item" data-target="5" onclick="closeMenu(); gp(5)">
+        <span class="menu-item-title">Appendix</span>
+        <span class="menu-item-sub">Process</span>
+      </a>
+      <a class="menu-item" data-target="6" onclick="closeMenu(); gp(6)">
+        <span class="menu-item-title">Annotations</span>
+        <span class="menu-item-sub">Testimonials</span>
+      </a>
+      <a class="menu-item" data-target="7" onclick="closeMenu(); gp(7)">
+        <span class="menu-item-title">The Index</span>
+        <span class="menu-item-sub">FAQ</span>
+      </a>
+      <a class="menu-item" data-target="8" onclick="closeMenu(); gp(8)">
+        <span class="menu-item-title">Write to us</span>
+        <span class="menu-item-sub">Contact</span>
+      </a>
+    </div>
+    <div class="menu-preview">
+      <!-- Bookmark icon — replaces the logo previously here -->
+      <svg class="menu-preview-icon" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22 14h52a4 4 0 014 4v68l-30-20-30 20V18a4 4 0 014-4z" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M34 36h28M34 44h22M34 52h20" stroke="currentColor" stroke-width="0.8" opacity="0.6"/>
+        <circle cx="48" cy="68" r="2" fill="currentColor" opacity="0.7"/>
+      </svg>
+      <p class="menu-preview-quote">"Every space has a story. We're just here to help you write it well."</p>
+      <div class="menu-preview-attr">— Interiors By B.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Page hints + counter -->
+<div id="hint-prev">&nbsp;Previous&nbsp;</div>
+<div id="hint-next">&nbsp;Next&nbsp;</div>
+<div id="counter">Cover &middot; 1 / 9</div>
+
+<!-- ═══════════════════════════════════════════ BOOK STAGE ═══════════════════════════════════════════ -->
+<div id="book-stage">
+
+<!-- ═══════════════════════════════════════════
+     PAGE 0 — COVER (open book: back | spine | front)
+═══════════════════════════════════════════ -->
+<div class="book-page page-current" data-page="0">
+  <section data-screen-label="01 Cover">
+    <div class="cover-spread">
+
+      <!-- BACK COVER (left in the spread — the back of a book) -->
+      <div class="cover-back">
+        <div class="cover-back-corner"></div>
+        <div class="cover-back-corner-br"></div>
+        <div>
+          <div class="cover-back-label rev">About the Studio</div>
+          <div class="cover-back-portrait rev rev-d1">
+            <img src="assets/logo.png" alt="IBB Studio Mark">
+          </div>
+        </div>
+        <div>
+          <p class="cover-back-bio rev rev-d2">
+            <em>Interiors By B.</em> is a residential and commercial design studio working
+            across London and Lagos. Curated. Curious. Connected. We design
+            intentional spaces that tell meaningful stories — rooted in purpose,
+            shaped by context, and executed with quiet excellence.
+          </p>
+        </div>
+        <div class="cover-back-meta rev rev-d3">
+          <div class="cover-back-tagline">Every space has a story.</div>
+          <div class="cover-back-isbn">IBB &middot; 2026 &middot; London &middot; Lagos</div>
+        </div>
+      </div>
+
+      <!-- SPINE -->
+      <div class="cover-spine-column">
+        <div class="cover-spine-title">Interiors By B.</div>
+        <div class="cover-spine-ornament"></div>
+        <div class="cover-spine-bottom">2026</div>
+      </div>
+
+      <!-- FRONT COVER (right in the spread) -->
+      <div class="cover-front">
+        <div class="cover-front-corner"></div>
+        <div class="cover-front-corner-bl"></div>
+        <div class="cover-front-edition rev">First Edition &middot; 2026</div>
+        <img src="assets/logo.png" class="cover-front-logo rev rev-d1" alt="Interiors By B.">
+        <div class="cover-front-rule rev rev-d2"></div>
+        <div class="cover-front-tagline rev rev-d2">Curated. Curious. Connected.</div>
+        <a class="cover-front-cta rev rev-d3" onclick="gp(1)">
+          Open the Book
+          <span class="cover-front-cta-line"></span>
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 1 — FOREWORD (A)
+═══════════════════════════════════════════ -->
+<div class="book-page page-future" data-page="1">
+  <section data-screen-label="02 Foreword" class="p-foreword">
+    <div class="chapter-spine">Foreword</div>
+    <div class="p-foreword-left">
+      <div>
+        <div class="chapter-label rev">Foreword</div>
+        <h2 class="p-foreword-headline rev rev-d1">
+          Curated.<br>
+          <em>Curious.</em><br>
+          Connected.
+        </h2>
+        <div class="ornament rev rev-d2">
+          <div class="ornament-diamond"></div>
+        </div>
+        <p class="page-body rev rev-d2">
+          We don't design for trends — we design for people.
+          Every decision we make is rooted in purpose, shaped by context,
+          and executed with the kind of quiet excellence that shows in how
+          a room makes you feel.
+        </p>
+      </div>
+      <div class="page-num rev">Foreword</div>
+    </div>
+    <div class="p-foreword-right">
+      <blockquote class="foreword-pullquote rev">
+        "We believe good design is rooted in purpose, shaped by context,
+        and executed with excellence. Not the loudest room in the building —
+        the one people remember long after they've left."
+      </blockquote>
+      <p class="page-body rev rev-d2">
+        Interiors By B. works across Nigeria and the United Kingdom, bringing
+        the same considered eye to a full residential overhaul as to a single,
+        long-neglected corner of a room. Our reach is wherever your story
+        needs to be told.
+      </p>
+      <div class="ornament rev rev-d3">
+        <div class="ornament-diamond"></div>
+      </div>
+      <p class="page-body rev rev-d3" style="font-weight: 500;">
+        Every great story starts with a conversation.<br>
+        Ours start the same way.
+      </p>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 2 — INTRODUCTION (A)
+═══════════════════════════════════════════ -->
+<div class="book-page page-future" data-page="2">
+  <section data-screen-label="03 Introduction" class="p-intro">
+    <div class="chapter-spine dark">Introduction</div>
+    <div class="p-intro-image">
+      <div class="interior-art">
+        <div class="ia-wall-l"></div>
+        <div class="ia-wall-r"></div>
+        <div class="ia-floor"></div>
+        <div class="ia-window"></div>
+        <div class="ia-sofa"></div>
+        <div class="ia-light"></div>
+        <div class="intro-image-label">Studio Project &middot; Lagos</div>
+      </div>
+    </div>
+    <div class="p-intro-text">
+      <div class="chapter-label rev">Introduction</div>
+      <blockquote class="intro-pullquote rev rev-d1">
+        "We didn't set out to decorate rooms. We set out to <em>understand people</em> — and let the rooms follow."
+      </blockquote>
+      <p class="page-body rev rev-d2">
+        I started Interiors by B because I genuinely believe that where you live
+        and work should feel like you — not like a showroom, not like a trend,
+        and definitely not like someone else's idea of nice.
+      </p>
+      <p class="page-body rev rev-d3">
+        Every project we take on starts the same way: with a conversation. I want to know
+        how you use your space, what bothers you about it, what you love — and honestly,
+        what you've been dreaming about but haven't said out loud yet.
+      </p>
+      <p class="page-body rev rev-d4">
+        Your space should tell your story. We're just here to help you write it well.
+      </p>
+      <a class="cta-link rev rev-d5" onclick="gp(3)">Browse the collection</a>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 3 — CHAPTERS / PORTFOLIO (B)
+═══════════════════════════════════════════ -->
+<div class="book-page page-future" data-page="3">
+  <section data-screen-label="04 Chapters" class="p-chapters">
+    <div class="p-chapters-inner">
+      <div class="chapter-spine">Chapters</div>
+      <div class="p-chapters-content">
+        <div class="chapters-header">
+          <h2 class="chapters-title rev">
+            Chapters
+            <em>The Collection.</em>
+          </h2>
+          <p class="chapters-subtitle rev rev-d2">
+            Each project is a chapter. Each chapter belongs to someone.
+          </p>
+        </div>
+        <div class="chapters-masonry">
+
+          <div class="chapter-item rev">
+            <div class="chapter-img" style="aspect-ratio:3/4; position:relative; overflow:hidden;">
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,#c8b99a,#b5a08a 40%,#9a8870 100%);"></div>
+              <div style="position:absolute;top:15%;left:10%;width:32%;height:50%;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);"></div>
+              <div style="position:absolute;bottom:0;left:0;right:0;height:32%;background:linear-gradient(to top,#7a6a58,#8a7a68);"></div>
+              <div style="position:absolute;bottom:30%;left:12%;width:55%;height:18%;background:#5a4a38;border-radius:3px 3px 0 0;"></div>
+              <div class="chapter-overlay">
+                <div class="chapter-overlay-title">The Lagos Penthouse</div>
+                <div class="chapter-overlay-sub">Full Interior &middot; 2025</div>
+              </div>
+            </div>
+            <div class="chapter-caption">
+              <span class="chapter-caption-name">The Lagos Penthouse</span>
+              <span class="chapter-caption-meta">Full Interior</span>
+            </div>
+          </div>
+
+          <div class="chapter-item rev rev-d1">
+            <div class="chapter-img" style="aspect-ratio:4/3; position:relative; overflow:hidden;">
+              <div style="position:absolute;inset:0;background:linear-gradient(135deg,#e2d5c5,#d0c4b0 50%,#c4b5a0 100%);"></div>
+              <div style="position:absolute;top:0;right:20%;bottom:0;left:50%;background:rgba(255,255,255,0.2);"></div>
+              <div style="position:absolute;bottom:0;left:0;right:0;height:28%;background:linear-gradient(to top,#8a7a68,#9a8a78);"></div>
+              <div class="chapter-overlay">
+                <div class="chapter-overlay-title">Marylebone Townhouse</div>
+                <div class="chapter-overlay-sub">E-Design &middot; 2025</div>
+              </div>
+            </div>
+            <div class="chapter-caption">
+              <span class="chapter-caption-name">Marylebone Townhouse</span>
+              <span class="chapter-caption-meta">E-Design</span>
+            </div>
+          </div>
+
+          <div class="chapter-item rev rev-d2">
+            <div class="chapter-img" style="aspect-ratio:1/1; position:relative; overflow:hidden;">
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,#c0b5a5,#a89880 100%);"></div>
+              <div style="position:absolute;top:8%;left:50%;transform:translateX(-50%);width:42%;height:55%;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.22);"></div>
+              <div style="position:absolute;bottom:0;left:0;right:0;height:32%;background:#7a6858;"></div>
+              <div class="chapter-overlay">
+                <div class="chapter-overlay-title">Abuja Family Home</div>
+                <div class="chapter-overlay-sub">Full Interior &middot; 2024</div>
+              </div>
+            </div>
+            <div class="chapter-caption">
+              <span class="chapter-caption-name">Abuja Family Home</span>
+              <span class="chapter-caption-meta">Full Interior</span>
+            </div>
+          </div>
+
+          <div class="chapter-item rev">
+            <div class="chapter-img" style="aspect-ratio:16/10; position:relative; overflow:hidden;">
+              <div style="position:absolute;inset:0;background:linear-gradient(110deg,#d8cfc0,#c8bfb0 100%);"></div>
+              <div style="position:absolute;top:5%;right:5%;width:36%;height:78%;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.26);"></div>
+              <div style="position:absolute;bottom:0;left:0;right:0;height:26%;background:#8a7a68;"></div>
+              <div class="chapter-overlay">
+                <div class="chapter-overlay-title">Notting Hill Studio</div>
+                <div class="chapter-overlay-sub">Procurement &middot; 2025</div>
+              </div>
+            </div>
+            <div class="chapter-caption">
+              <span class="chapter-caption-name">Notting Hill Studio</span>
+              <span class="chapter-caption-meta">Procurement</span>
+            </div>
+          </div>
+
+          <div class="chapter-item rev rev-d1">
+            <div class="chapter-img" style="aspect-ratio:3/5; position:relative; overflow:hidden;">
+              <div style="position:absolute;inset:0;background:linear-gradient(160deg,#bbb0a4,#a89a8c 100%);"></div>
+              <div style="position:absolute;top:12%;left:20%;width:60%;height:42%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);"></div>
+              <div style="position:absolute;bottom:0;left:0;right:0;height:30%;background:#6e5e4e;"></div>
+              <div class="chapter-overlay">
+                <div class="chapter-overlay-title">Victoria Island Office</div>
+                <div class="chapter-overlay-sub">Commercial &middot; 2024</div>
+              </div>
+            </div>
+            <div class="chapter-caption">
+              <span class="chapter-caption-name">Victoria Island Office</span>
+              <span class="chapter-caption-meta">Commercial</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 4 — VOLUMES (B)
+═══════════════════════════════════════════ -->
+<div class="book-page page-future" data-page="4">
+  <section data-screen-label="05 Volumes" class="p-volumes">
+    <div class="chapter-spine dark">Volumes</div>
+    <div class="p-volumes-content">
+      <div class="volumes-header">
+        <h2 class="volumes-title rev">
+          Volumes
+          <em>Our Services.</em>
+        </h2>
+        <p class="volumes-lead rev rev-d2">
+          Whether you're building from the ground up or starting with a single room — your story deserves to be told well.
+        </p>
+      </div>
+      <div class="volumes-grid">
+        <div class="volume-col rev">
+          <div class="volume-bg-num">I</div>
+          <div class="volume-label">Volume I</div>
+          <div class="volume-title">Full Interior Design Service</div>
+          <div class="volume-body">The full story — from the first conversation to the moment you walk into a space that finally feels right. Concept, planning, sourcing, coordination, delivery.</div>
+        </div>
+        <div class="volume-col rev rev-d1">
+          <div class="volume-bg-num">II</div>
+          <div class="volume-label">Volume II</div>
+          <div class="volume-title">E-Design Service</div>
+          <div class="volume-body">Great design shouldn't depend on where you live or what you have to spend. Same considered approach, delivered entirely online.</div>
+        </div>
+        <div class="volume-col rev rev-d2">
+          <div class="volume-bg-num">III</div>
+          <div class="volume-label">Volume III</div>
+          <div class="volume-title">Design Consultation</div>
+          <div class="volume-body">Sometimes you don't need us to run the project — you just need a second eye and an honest conversation. For architects and developers.</div>
+        </div>
+        <div class="volume-col rev rev-d3">
+          <div class="volume-bg-num">IV</div>
+          <div class="volume-label">Volume IV</div>
+          <div class="volume-title">Procurement &amp; Sourcing</div>
+          <div class="volume-body">Furniture, lighting, finishes, and fixtures that genuinely fit your space and your brief. We look, you approve, we source.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 5 — APPENDIX / PROCESS (B)
+═══════════════════════════════════════════ -->
+<div class="book-page page-future" data-page="5">
+  <section data-screen-label="06 Appendix" class="p-appendix">
+    <div class="chapter-spine">Appendix</div>
+    <div class="p-appendix-content">
+      <div class="appendix-header">
+        <h2 class="appendix-title rev">
+          Appendix
+          <em>How we work.</em>
+        </h2>
+        <p class="appendix-lead rev rev-d2">
+          "How your story is written. Every great story has a structure. Ours has six stages."
+        </p>
+      </div>
+      <div class="process-grid">
+        <div class="process-col rev">
+          <div class="process-label">Draft 01</div>
+          <div class="process-title">Discovery</div>
+          <div class="process-body">A real conversation, not a questionnaire. We are genuinely curious about you before we are curious about your space.</div>
+          <div class="process-line"></div>
+        </div>
+        <div class="process-col rev rev-d1">
+          <div class="process-label">Draft 02</div>
+          <div class="process-title">Concept Development</div>
+          <div class="process-body">Every story has a genre. Through mood boards and genuine back-and-forth, we develop the design language for your space.</div>
+          <div class="process-line"></div>
+        </div>
+        <div class="process-col rev rev-d2">
+          <div class="process-label">Draft 03</div>
+          <div class="process-title">Design &amp; Detailing</div>
+          <div class="process-body">Floor plans, elevations, material specs, furniture layouts, lighting — every detail considered and documented.</div>
+          <div class="process-line"></div>
+        </div>
+        <div class="process-col rev rev-d3">
+          <div class="process-label">Draft 04</div>
+          <div class="process-title">Procurement</div>
+          <div class="process-body">Every piece curated with the same rigour we brought to the design itself. We look, you approve, we buy.</div>
+          <div class="process-line"></div>
+        </div>
+        <div class="process-col rev rev-d4">
+          <div class="process-label">Draft 05</div>
+          <div class="process-title">Project Management</div>
+          <div class="process-body">We stay on site and on it. From contractor coordination to installation oversight — what gets built matches what was designed.</div>
+          <div class="process-line"></div>
+        </div>
+        <div class="process-col rev rev-d5">
+          <div class="process-label">Final Reveal</div>
+          <div class="process-title">Reveal &amp; Handover</div>
+          <div class="process-body">The moment your chapter gets its cover. Complete, considered, and entirely yours. We'll be there, probably too excited.</div>
+          <div class="process-line"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 6 — ANNOTATIONS / TESTIMONIALS (A)
+═══════════════════════════════════════════ -->
+<div class="book-page page-future" data-page="6">
+  <section data-screen-label="07 Annotations" class="p-annotations">
+    <div class="annotations-eyebrow rev">Annotations</div>
+    <h2 class="annotations-title rev rev-d1">
+      What our clients<br>
+      <em>write in the margins.</em>
+    </h2>
+    <div class="testimonials-grid">
+      <div class="testimonial rev">
+        <p class="testimonial-text">
+          Walking into the finished space for the first time — I genuinely didn't have words. It felt like someone had reached inside my head and pulled out exactly what I'd always wanted but couldn't articulate.
+        </p>
+        <div class="testimonial-author">A.O. &middot; Lagos &middot; Residential</div>
+      </div>
+      <div class="testimonial rev rev-d1">
+        <p class="testimonial-text">
+          What I didn't expect was how much I'd enjoy the process itself. The questions they asked made me think about my space — and myself — differently. The result was extraordinary.
+        </p>
+        <div class="testimonial-author">M.T. &middot; London &middot; Townhouse</div>
+      </div>
+      <div class="testimonial rev rev-d2">
+        <p class="testimonial-text">
+          I came with a small budget and left with a space I'm genuinely proud of. The e-design service gave me everything — clarity, direction, and a home that finally makes sense.
+        </p>
+        <div class="testimonial-author">K.A. &middot; Abuja &middot; E-Design</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 7 — THE INDEX / FAQ (A)
+═══════════════════════════════════════════ -->
+<div class="book-page page-future" data-page="7">
+  <section data-screen-label="08 The Index" class="p-index">
+    <div class="chapter-spine">The Index</div>
+    <div class="index-content">
+      <div class="index-header">
+        <h2 class="index-title rev">
+          The Index
+          <em>Questions answered.</em>
+        </h2>
+        <p class="index-sub rev rev-d2">
+          Everything you need to know before we begin.
+        </p>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item rev">
+          <div class="faq-q">What does working with IBB look like? <span class="faq-icon">+</span></div>
+          <div class="faq-a"><div class="faq-a-inner">It starts with a conversation — a real one. We want to understand you, your space, and what you're hoping to feel when you walk through the door. From there we take you through concept development, design and detailing, sourcing, and delivery. We stay involved at every stage.</div></div>
+        </div>
+        <div class="faq-item rev rev-d1">
+          <div class="faq-q">Do you work outside Nigeria and the UK? <span class="faq-icon">+</span></div>
+          <div class="faq-a"><div class="faq-a-inner">Yes. Our studio works across both Nigeria and the UK, and our e-design service means we can work with clients anywhere in the world. Location has never stopped a good story from being told.</div></div>
+        </div>
+        <div class="faq-item rev rev-d2">
+          <div class="faq-q">I have a smaller budget — can IBB still help? <span class="faq-icon">+</span></div>
+          <div class="faq-a"><div class="faq-a-inner">Absolutely. Our e-design service was built specifically to make intentional, considered design accessible at every budget level. You get the same care and approach as our full service, delivered online.</div></div>
+        </div>
+        <div class="faq-item rev rev-d3">
+          <div class="faq-q">How long does a full project typically take? <span class="faq-icon">+</span></div>
+          <div class="faq-a"><div class="faq-a-inner">It depends on the scope. As a guide, most residential projects run between three and six months from brief to reveal. We'll give you a clear timeline at the start of your project and keep you updated throughout.</div></div>
+        </div>
+        <div class="faq-item rev rev-d4">
+          <div class="faq-q">What's included in an e-design package? <span class="faq-icon">+</span></div>
+          <div class="faq-a"><div class="faq-a-inner">A tailored mood board, a spatial layout plan, a curated sourcing list with product recommendations, and a design direction document you can take forward yourself or hand to a contractor. Delivered digitally, specific to your space.</div></div>
+        </div>
+        <div class="faq-item rev rev-d5">
+          <div class="faq-q">How do I know if I'm ready to start? <span class="faq-icon">+</span></div>
+          <div class="faq-a"><div class="faq-a-inner">If you've been thinking about your space — what's bothering you, what you wish it felt like, what you've been putting off — you're probably ready. You don't need to have all the answers before we speak.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE 8 — WRITE TO US (B layout, A colors)
+═══════════════════════════════════════════ -->
+<div class="book-page page-future" data-page="8">
+  <section data-screen-label="09 Write to Us" class="p-write">
+    <div class="p-write-left">
+      <div class="write-corner-tr"></div>
+      <div class="write-eyebrow rev">Write to us</div>
+      <h2 class="write-title rev rev-d1">
+        Ready to start<br>
+        <em>your chapter?</em>
+      </h2>
+      <p class="write-body rev rev-d2">
+        We'd love to hear your story first. Tell us about your space, what's been on your mind, and what you've been dreaming about.
+      </p>
+      <div class="write-details rev rev-d3">
+        <div>
+          <div class="write-detail-label">Studio</div>
+          <div class="write-detail-val">London &amp; Lagos</div>
+        </div>
+        <div>
+          <div class="write-detail-label">E-Design</div>
+          <div class="write-detail-val">Worldwide</div>
+        </div>
+        <div>
+          <div class="write-detail-label">Email</div>
+          <div class="write-detail-val">hello@interiorsbyb.com</div>
+        </div>
+      </div>
+    </div>
+    <div class="p-write-right">
+      <form id="contactForm" onsubmit="submitContact(event)">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+          <div>
+            <label class="form-label">Your Name</label>
+            <input class="form-input" type="text" placeholder="First &amp; Last" required>
+          </div>
+          <div>
+            <label class="form-label">Email</label>
+            <input class="form-input" type="email" placeholder="your@email.com" required>
+          </div>
+        </div>
+        <label class="form-label">Location</label>
+        <input class="form-input" type="text" placeholder="City, Country">
+        <label class="form-label">Service Interest</label>
+        <input class="form-input" type="text" placeholder="Full Service, E-Design, Consultation…">
+        <label class="form-label">Your Story</label>
+        <textarea class="form-textarea" placeholder="Tell us about your space and what's on your mind…" required></textarea>
+        <button class="form-submit" type="submit">Begin your chapter &nbsp;&rarr;</button>
+      </form>
+      <div class="form-success" id="formSuccess">
+        Thank you. We'll be in touch to begin your story.
+      </div>
+    </div>
+  </section>
+</div>
+
+</div><!-- /book-stage -->
+
+<script>
+  // ─── CURSOR ───
+  const cur = document.getElementById('cursor');
+  document.addEventListener('mousemove', e => {
+    cur.style.left = e.clientX + 'px';
+    cur.style.top  = e.clientY + 'px';
+  });
+  function bindCursorTo(sel) {
+    document.querySelectorAll(sel).forEach(el => {
+      el.addEventListener('mouseenter', () => cur.classList.add('expand'));
+      el.addEventListener('mouseleave', () => cur.classList.remove('expand'));
+    });
+  }
+  bindCursorTo('a, button, .menu-item, .chapter-item, .volume-col, .faq-q, .nav-logo');
+
+  // ─── LOADER ───
+  window.addEventListener('load', () => {
+    setTimeout(() => document.getElementById('loader').classList.add('hide'), 2600);
+  });
+
+  // ─── MENU ───
+  const menuBtn = document.getElementById('menuBtn');
+  const menuOverlay = document.getElementById('menu-overlay');
+  let menuOpen = false;
+  function openMenu()  { menuOpen = true;  menuBtn.classList.add('open');    menuOverlay.classList.add('open'); document.body.style.overflow='hidden'; }
+  function closeMenu() { menuOpen = false; menuBtn.classList.remove('open'); menuOverlay.classList.remove('open'); document.body.style.overflow=''; }
+  menuBtn.addEventListener('click', () => menuOpen ? closeMenu() : openMenu());
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+  // ─── PAGE FLIP ENGINE ───
+  const pages = Array.from(document.querySelectorAll('.book-page'));
+  const TOTAL = pages.length;
+  const PAGE_NAMES = ['Cover','Foreword','Introduction','Chapters','Volumes','Appendix','Annotations','The Index','Write to us'];
+  // Dark pages (light nav/logo)
+  const DARK_PAGES = new Set([0, 2, 4, 6, 8]);
+
+  let curPage = 0;
+  let flipping = false;
+  const FLIP_DUR = 850;
+
+  function updateUI() {
+    // Counter — hide on cover (collides with corner ornaments)
+    const counter = document.getElementById('counter');
+    if (curPage === 0) {
+      counter.style.display = 'none';
+    } else {
+      counter.style.display = '';
+      counter.textContent =
+        PAGE_NAMES[curPage] + ' \u00B7 ' + (curPage + 1) + ' / ' + TOTAL;
+    }
+    // Hints
+    const prev = document.getElementById('hint-prev');
+    const next = document.getElementById('hint-next');
+    prev.classList.toggle('vis', curPage > 0);
+    next.classList.toggle('vis', curPage < TOTAL - 1);
+    if (curPage < TOTAL - 1) next.textContent = ' ' + PAGE_NAMES[curPage + 1] + ' ';
+    if (curPage > 0)         prev.textContent = ' ' + PAGE_NAMES[curPage - 1] + ' ';
+
+    // Nav appearance
+    const isDark = DARK_PAGES.has(curPage);
+    const navLogo = document.getElementById('navLogo');
+    navLogo.className = 'nav-logo ' + (isDark ? 'dark-bg' : 'light-bg');
+    menuBtn.className = 'nav-menu-btn ' + (menuBtn.classList.contains('open') ? 'open ' : '') + (isDark ? '' : 'light-bg');
+    document.body.classList.toggle('light-hints', !isDark);
+
+    // TOC active state
+    document.querySelectorAll('.menu-item').forEach(el => {
+      el.classList.toggle('active', parseInt(el.dataset.target) === curPage);
+    });
+  }
+
+  function revealContent(pageEl) {
+    pageEl.scrollTop = 0;
+    pageEl.querySelectorAll('.rev').forEach(el => el.classList.remove('vis'));
+    setTimeout(() => {
+      pageEl.querySelectorAll('.rev').forEach(el => el.classList.add('vis'));
+    }, 80);
+  }
+
+  // Direct jump without animation
+  function jumpTo(target) {
+    if (target === curPage || target < 0 || target >= TOTAL) return;
+    // reset all pages to correct state
+    pages.forEach((p, i) => {
+      p.className = 'book-page';
+      if (i < target)      p.classList.add('page-past');
+      else if (i > target) p.classList.add('page-future');
+      else                 p.classList.add('page-current');
+    });
+    curPage = target;
+    updateUI();
+    revealContent(pages[target]);
+  }
+
+  // Animated step (only one page at a time)
+  function stepTo(target) {
+    if (flipping || target === curPage) return;
+    const dir = target > curPage ? 1 : -1;
+    const next = curPage + dir;
+    const leaving = pages[curPage];
+    const entering = pages[next];
+
+    flipping = true;
+
+    if (dir === 1) {
+      leaving.classList.remove('page-current');
+      leaving.classList.add('flipping-out');
+      entering.classList.remove('page-future');
+      // entering becomes current under the flipping page
+      entering.classList.add('page-current');
+      // momentarily entering has z=10 but flipping-out has z=20, so flipping page covers it
+      setTimeout(() => {
+        leaving.classList.remove('flipping-out');
+        leaving.classList.add('page-past');
+        curPage = next;
+        flipping = false;
+        updateUI();
+        revealContent(entering);
+      }, FLIP_DUR);
+    } else {
+      // backward: the leaving page goes back to future, the past page becomes current via reverse flip
+      leaving.classList.remove('page-current');
+      leaving.classList.add('page-future');  // entering will animate on top
+      entering.classList.remove('page-past');
+      entering.classList.add('flipping-back-out');
+      setTimeout(() => {
+        entering.classList.remove('flipping-back-out');
+        entering.classList.add('page-current');
+        curPage = next;
+        flipping = false;
+        updateUI();
+        revealContent(entering);
+      }, FLIP_DUR);
+    }
+  }
+
+  // ─── PUBLIC: gp() ───
+  // gp(target): if target == current ±1 (or moved by scroll/keyboard one step), animate.
+  // If target is non-adjacent (menu jump), go directly without animation.
+  function gp(target) {
+    if (target === curPage || target < 0 || target >= TOTAL || flipping) return;
+    if (Math.abs(target - curPage) === 1) {
+      stepTo(target);
+    } else {
+      jumpTo(target);
+    }
+  }
+
+  // ─── SCROLL within current page → flip at boundaries ───
+  let scrollCooldown = false;
+  document.getElementById('book-stage').addEventListener('wheel', e => {
+    const page = pages[curPage];
+    const atBottom = page.scrollHeight - page.scrollTop - page.clientHeight < 8;
+    const atTop    = page.scrollTop < 8;
+    if (e.deltaY > 0 && atBottom && !scrollCooldown && curPage < TOTAL - 1) {
+      scrollCooldown = true;
+      stepTo(curPage + 1);
+      setTimeout(() => scrollCooldown = false, FLIP_DUR + 350);
+    } else if (e.deltaY < 0 && atTop && !scrollCooldown && curPage > 0) {
+      scrollCooldown = true;
+      stepTo(curPage - 1);
+      setTimeout(() => scrollCooldown = false, FLIP_DUR + 350);
+    }
+  }, { passive: true });
+
+  // ─── TOUCH ───
+  let ty0 = 0, tx0 = 0;
+  document.getElementById('book-stage').addEventListener('touchstart', e => {
+    ty0 = e.touches[0].clientY;
+    tx0 = e.touches[0].clientX;
+  }, { passive: true });
+  document.getElementById('book-stage').addEventListener('touchend', e => {
+    const dy = ty0 - e.changedTouches[0].clientY;
+    const dx = tx0 - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
+      if (dx > 0 && curPage < TOTAL - 1) stepTo(curPage + 1);
+      else if (dx < 0 && curPage > 0)    stepTo(curPage - 1);
+    }
+  }, { passive: true });
+
+  // ─── KEYBOARD: arrow keys = step (animated); PgUp/PgDn too ───
+  document.addEventListener('keydown', e => {
+    if (menuOpen) return;
+    if (['ArrowRight','ArrowDown','PageDown'].includes(e.key) && curPage < TOTAL - 1) stepTo(curPage + 1);
+    if (['ArrowLeft','ArrowUp','PageUp'].includes(e.key) && curPage > 0)              stepTo(curPage - 1);
+  });
+
+  // ─── HINTS ───
+  document.getElementById('hint-next').addEventListener('click', () => stepTo(curPage + 1));
+  document.getElementById('hint-prev').addEventListener('click', () => stepTo(curPage - 1));
+
+  // ─── FAQ ───
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', () => {
+      const item = q.parentElement;
+      const wasOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!wasOpen) item.classList.add('open');
+    });
+  });
+
+  // ─── FORM ───
+  function submitContact(e) {
+    e.preventDefault();
+    document.getElementById('contactForm').style.display = 'none';
+    document.getElementById('formSuccess').style.display = 'block';
+  }
+
+  // ─── INIT ───
+  updateUI();
+  setTimeout(() => revealContent(pages[0]), 2700);
+
+  // ─── TWEAKS ───
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "accent": "#9A8876",
+    "flipSpeed": 850
+  }/*EDITMODE-END*/;
+
+  window.addEventListener('message', e => {
+    if (e.data?.type === '__activate_edit_mode')   document.getElementById('tweaks').style.display = 'block';
+    if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks').style.display = 'none';
+  });
+  window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+  function setAccent(color) {
+    document.documentElement.style.setProperty('--taupe', color);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { accent: color } }, '*');
+  }
+</script>
+
+<!-- Tweaks panel -->
+<div id="tweaks" style="display:none; position:fixed; bottom:24px; right:24px; background:#1A1714; border:1px solid rgba(154,136,118,0.3); padding:24px; z-index:600; width:260px; font-family:'Comfortaa',sans-serif; color:#F4EEE5;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:14px;">
+    <span style="font-size:13px; font-weight:600; letter-spacing:0.35em; text-transform:uppercase; color:#9A8876;">Tweaks</span>
+    <button onclick="document.getElementById('tweaks').style.display='none'; window.parent.postMessage({type:'__edit_mode_dismissed'},'*')" style="background:none;border:none;color:#9A8876;cursor:pointer;font-size:20px;">×</button>
+  </div>
+  <div style="margin-bottom:16px;">
+    <div style="font-size:11px; font-weight:600; letter-spacing:0.4em; text-transform:uppercase; color:#C2B3A1; margin-bottom:12px;">Accent</div>
+    <div style="display:flex; gap:10px;">
+      <button onclick="setAccent('#9A8876')" title="Taupe"   style="width:32px;height:32px;background:#9A8876;border:none;cursor:pointer;border-radius:50%;"></button>
+      <button onclick="setAccent('#A89888')" title="Warm"    style="width:32px;height:32px;background:#A89888;border:none;cursor:pointer;border-radius:50%;"></button>
+      <button onclick="setAccent('#8B7E70')" title="Stone"   style="width:32px;height:32px;background:#8B7E70;border:none;cursor:pointer;border-radius:50%;"></button>
+      <button onclick="setAccent('#B5A593')" title="Sand"    style="width:32px;height:32px;background:#B5A593;border:none;cursor:pointer;border-radius:50%;"></button>
+      <button onclick="setAccent('#7A6E62')" title="Walnut"  style="width:32px;height:32px;background:#7A6E62;border:none;cursor:pointer;border-radius:50%;"></button>
+    </div>
+  </div>
+  <div>
+    <div style="font-size:11px; font-weight:600; letter-spacing:0.4em; text-transform:uppercase; color:#C2B3A1; margin-bottom:10px;">Logo Size</div>
+    <input type="range" min="60" max="140" value="100" style="width:100%; accent-color:#9A8876;"
+      oninput="document.querySelector('.cover-front-logo').style.width = this.value + '%';">
+  </div>
+</div>
+
+</body>
+</html>
