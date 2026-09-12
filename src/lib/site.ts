@@ -4,10 +4,36 @@
  * page and the full landing page never drift apart.
  */
 
+const FALLBACK_ORIGIN = "https://www.interiorsbyb.net";
+
+/**
+ * Origins get typed into dashboards by hand, so accept what a person
+ * would reasonably enter — "interiorsbyb.net", a trailing slash, stray
+ * whitespace — and normalise rather than throwing at module scope.
+ * `new URL()` on a bare host fails the whole build (ERR_INVALID_URL)
+ * during static generation, which is a brutal failure for a typo.
+ */
+function resolveOrigin(raw: string | undefined): string {
+  const value = raw?.trim().replace(/\/+$/, "");
+  if (!value) return FALLBACK_ORIGIN;
+
+  const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  try {
+    return new URL(withScheme).origin;
+  } catch {
+    console.warn(
+      `[site] NEXT_PUBLIC_SITE_URL is not a usable origin: ${raw}. ` +
+        `Falling back to ${FALLBACK_ORIGIN}.`,
+    );
+    return FALLBACK_ORIGIN;
+  }
+}
+
 export const site = {
   name: "Interiors By B.",
   shortName: "IBB",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.interiorsbyb.net",
+  url: resolveOrigin(process.env.NEXT_PUBLIC_SITE_URL),
   tagline: "Curated. Curious. Connected.",
   motto: "Every space has a story.",
   edition: "First Edition · 2026",
