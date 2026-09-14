@@ -60,6 +60,17 @@ pre-recoloured `public/logo-light.png` instead.
 Without the first three, `POST /api/subscribe` returns a 503 and the form says
 signups aren't open yet, rather than failing silently.
 
+### Testing the form without sending mail
+
+In `npm run dev` with the Resend keys unset, a signup **succeeds without
+sending** — it returns `{ ok: true, mocked: true }` after a short pause and
+logs what it would have sent. That's there so the success state and the
+page-turn can be exercised with no account and no keys.
+
+This never happens in production: a deployment missing its keys returns the
+503 rather than quietly telling people they're on a list they aren't on. To
+get the same behaviour from a local production build, set `MOCK_SIGNUP=1`.
+
 ## SEO
 
 Metadata, `opengraph-image`, `twitter-image`, `icon`, `apple-icon`, `sitemap.ts`

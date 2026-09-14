@@ -77,6 +77,30 @@ export async function POST(request: Request) {
   const from = process.env.RESEND_FROM;
   const notify = process.env.NOTIFY_EMAIL;
 
+  const configured = Boolean(apiKey && from && notify);
+
+  /**
+   * Local development with no Resend keys succeeds without sending, so the
+   * form's success path and the page-turn can be exercised. Never in
+   * production: a deployment missing its keys must fail loudly rather than
+   * quietly tell people they're on a list they aren't on.
+   *
+   * MOCK_SIGNUP=1 forces it on for a local production build.
+   */
+  const mocking =
+    process.env.MOCK_SIGNUP === "1" ||
+    (!configured && process.env.NODE_ENV !== "production");
+
+  if (mocking) {
+    console.warn(
+      `[subscribe] MOCK — nothing sent. Would have told ${notify ?? "NOTIFY_EMAIL (unset)"} about ${email}`,
+    );
+    // Stand in for the provider round-trip, so the submitting state lasts
+    // about as long as it will in production.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return NextResponse.json({ ok: true, mocked: true });
+  }
+
   if (!apiKey || !from || !notify) {
     console.error("[subscribe] Resend env vars are not configured");
     return NextResponse.json(
