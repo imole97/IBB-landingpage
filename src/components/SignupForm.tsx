@@ -47,8 +47,11 @@ export function SignupForm() {
         return;
       }
 
+      // Deliberately no form.reset(): the front face stays visible for the
+      // first half of the turn, so clearing it makes the address the person
+      // just typed visibly vanish mid-flip. "done" is terminal — the form
+      // is never shown again.
       setStatus("done");
-      form.reset();
     } catch {
       setStatus("error");
       setMessage("We couldn't reach the studio. Please try again in a moment.");
