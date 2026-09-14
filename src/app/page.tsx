@@ -23,9 +23,10 @@ export default function Page() {
     <>
       <Cursor />
       <Stage>
-        <main className="grid min-h-dvh grid-cols-1 lg:grid-cols-[1fr_70px_1fr]">
-          {/* ─── BACK COVER — the studio, and the list ─── */}
-          <section className="surface-cover-back relative order-3 flex flex-col justify-center gap-10 px-6 py-16 sm:px-10 lg:order-1 lg:border-r lg:border-white/5 lg:px-18 lg:py-20">
+        <main className="book grid min-h-dvh grid-cols-1 lg:grid-cols-[1fr_70px_1fr]">
+          {/* ─── BACK COVER — the studio, and the list.
+               This is the leaf that swings open on the spine. ─── */}
+          <section className="book-leaf surface-cover-back relative order-3 flex flex-col justify-center gap-10 px-6 py-16 sm:px-10 lg:order-1 lg:border-r lg:border-white/5 lg:px-18 lg:py-20">
             <CornerBrackets corners="tl-br" />
 
             <Reveal>
@@ -95,13 +96,13 @@ export default function Page() {
           <section className="surface-cover-front relative order-1 flex flex-col items-center justify-center px-6 py-20 text-center sm:px-10 lg:order-3 lg:px-18">
             <CornerBrackets corners="tr-bl" />
 
-            <Reveal>
+            <Reveal on="cover">
               <Label size="lg" className="mb-10 sm:mb-12">
                 {site.edition}
               </Label>
             </Reveal>
 
-            <Reveal delay={1} className="mb-9 w-[min(360px,72vw)] lg:w-[clamp(220px,26vw,360px)]">
+            <Reveal on="cover" delay={1} className="mb-9 w-[min(360px,72vw)] lg:w-[clamp(220px,26vw,360px)]">
               <h1>
                 <Wordmark priority />
                 <span className="sr-only">
@@ -110,14 +111,14 @@ export default function Page() {
               </h1>
             </Reveal>
 
-            <Reveal delay={2} className="w-full">
+            <Reveal on="cover" delay={2} className="w-full">
               <Rule className="mb-7" />
               <p className="mb-12 text-[16px] tracking-tagline text-paper sm:mb-14 sm:text-[18px] lg:text-[21px]">
                 {site.tagline}
               </p>
             </Reveal>
 
-            <Reveal delay={3}>
+            <Reveal on="cover" delay={3}>
               <p className="text-[15px] leading-relaxed text-taupe-light italic sm:text-[17px]">
                 &ldquo;{site.motto}&rdquo;
               </p>

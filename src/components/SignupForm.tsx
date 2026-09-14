@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { Field, SubmitButton } from "@/components/ui/Field";
+import { Flipper } from "@/components/ui/Flipper";
 import { Label } from "@/components/ui/Label";
 
 type Status = "idle" | "submitting" | "done" | "error";
@@ -54,20 +55,8 @@ export function SignupForm() {
     }
   }
 
-  if (status === "done") {
-    // Ports .form-success — 20px taupe, the prototype's own copy.
-    return (
-      <p
-        role="status"
-        className="max-w-[440px] text-[18px] leading-relaxed text-taupe sm:text-[20px]"
-      >
-        Thank you. We&rsquo;ll be in touch to begin your story.
-      </p>
-    );
-  }
-
-  return (
-    <form onSubmit={onSubmit} noValidate className="max-w-[440px]">
+  const form = (
+    <form onSubmit={onSubmit} noValidate>
       <Label as="label" htmlFor={emailId} size="sm" className="mb-2.5 block">
         Email
       </Label>
@@ -92,7 +81,10 @@ export function SignupForm() {
       />
 
       {/* Honeypot: off-screen, untabbable, never announced. */}
-      <div aria-hidden className="absolute left-[-9999px] h-px w-px overflow-hidden">
+      <div
+        aria-hidden
+        className="absolute left-[-9999px] h-px w-px overflow-hidden"
+      >
         <input
           type="text"
           name="company"
@@ -102,7 +94,11 @@ export function SignupForm() {
         />
       </div>
 
-      <SubmitButton type="submit" disabled={status === "submitting"} className="mt-7">
+      <SubmitButton
+        type="submit"
+        disabled={status === "submitting"}
+        className="mt-7"
+      >
         {status === "submitting" ? "Sending…" : "Notify me"}
         <span aria-hidden>&rarr;</span>
       </SubmitButton>
@@ -115,5 +111,24 @@ export function SignupForm() {
         {message}
       </p>
     </form>
+  );
+
+  // Joining the list is the one moment this page changes state, so it gets
+  // the book's own gesture: the panel turns like a page.
+  return (
+    <Flipper
+      turned={status === "done"}
+      className="max-w-[440px]"
+      front={form}
+      back={
+        // Ports .form-success — 20px taupe, the prototype's own copy.
+        <p
+          role="status"
+          className="text-[18px] leading-relaxed text-taupe sm:text-[20px]"
+        >
+          Thank you. We&rsquo;ll be in touch to begin your story.
+        </p>
+      }
+    />
   );
 }

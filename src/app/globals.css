@@ -82,13 +82,8 @@ body {
    Motion is opt-in: without it, content is simply visible.
    ══════════════════════════════════════════════════════════════ */
 
-/* Reduced motion: no loader, and .rev never gets defined below, so the
-   page renders plainly visible with no timing involved. */
-@media (prefers-reduced-motion: reduce) {
-  [data-loader] {
-    display: none !important;
-  }
-}
+/* Reduced motion: none of the rules below are defined, so the spread is
+   simply there — open, still, and fully visible with no timing at all. */
 
 @media (prefers-reduced-motion: no-preference) {
   .rev {
@@ -98,9 +93,19 @@ body {
       opacity 0.85s ease,
       transform 0.85s ease;
   }
-  /* The Stage flips one attribute when the loader finishes; every .rev
-     beneath it animates in on its own delay step. */
+  /* Content on the leaf waits for the book to be most of the way open. */
   [data-revealed] .rev {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Content ON THE COVER arrives first, while the book is still shut — a
+     closed book shows its cover, it isn't a blank slab. Quicker than the
+     leaf's reveal so the cover has settled before the hinge moves. */
+  .rev-cover {
+    transition-duration: 0.6s;
+  }
+  [data-cover] .rev-cover {
     opacity: 1;
     transform: translateY(0);
   }
@@ -120,27 +125,126 @@ body {
     transition-delay: 0.65s;
   }
 
-  /* ─── LOADER — prototype keyframes, lines 86–87 ─── */
-  @keyframes loaderFade {
-    to {
+  /* ════════════════════════════════════════════════════════════
+     THE BOOK OPENS
+     The coming-soon page is the cover, so it gets the one gesture a
+     cover has. Same hinge and easing as the prototype's page turn
+     (lines 129–156), used once.
+
+     Only the left leaf moves. Folded at rotateY(180deg) about its
+     right edge it lands exactly on the front cover's footprint, and
+     its hidden backface means it isn't drawn — so the first frame is
+     a single cover-sized panel: a shut book on a dark table.
+     ════════════════════════════════════════════════════════════ */
+
+  /* Hinge at the spine, not at the viewport edge. */
+  .book-stage {
+    perspective: 2600px;
+    perspective-origin: 50% 50%;
+  }
+
+  /* The book slides right as it opens, so the shut cover reads centred.
+     preserve-3d carries the stage's perspective down to the leaf. */
+  .book {
+    transform: translateX(-25%);
+    transform-style: preserve-3d;
+    transition: transform 1.1s var(--ease-book);
+  }
+  [data-opened] .book {
+    transform: translateX(0);
+  }
+
+  .book-leaf {
+    transform-origin: right center;
+    transform: rotateY(180deg);
+    backface-visibility: hidden;
+    transition:
+      transform 1.1s var(--ease-book),
+      box-shadow 1.1s var(--ease-book);
+    will-change: transform;
+  }
+  [data-opened] .book-leaf {
+    transform: rotateY(0deg);
+    box-shadow: none;
+  }
+
+  /* The shadow the cover throws into the gutter mid-swing. A transition
+     can't hold a mid-point, so it rides its own keyframe. */
+  [data-opened] .book-leaf {
+    animation: leafShadow 1.1s var(--ease-book);
+  }
+  @keyframes leafShadow {
+    0%,
+    100% {
+      box-shadow: none;
+    }
+    45% {
+      box-shadow: 40px 0 70px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  /* Prototype's leading-edge gradient, mirrored: the leaf darkens along
+     the edge that is turning away from the light. */
+  .book-leaf::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 1.1s var(--ease-book);
+    background: linear-gradient(
+      to left,
+      rgba(0, 0, 0, 0) 60%,
+      rgba(0, 0, 0, 0.25) 80%,
+      rgba(0, 0, 0, 0.55) 100%
+    );
+  }
+  [data-opened] .book-leaf::after {
+    opacity: 0;
+  }
+
+  /* Below the spread there is no hinge and nothing to open — the panel
+     beneath the cover simply rises into place. */
+  @media (width < 64rem) {
+    .book {
+      transform: none;
+    }
+    .book-leaf {
+      transform: translateY(28px);
+      opacity: 0;
+      backface-visibility: visible;
+      transition:
+        transform 0.9s var(--ease-book),
+        opacity 0.9s ease;
+    }
+    [data-opened] .book-leaf {
+      transform: translateY(0);
       opacity: 1;
     }
-  }
-  @keyframes loaderLine {
-    to {
-      width: 80px;
+    [data-opened] .book-leaf {
+      animation: none;
+    }
+    .book-leaf::after {
+      display: none;
     }
   }
-  .loader-logo {
-    opacity: 0;
-    animation: loaderFade 0.45s ease 0.05s forwards;
+
+  /* ════════════════════════════════════════════════════════════
+     THE PAGE TURN — used where the page changes state
+     ════════════════════════════════════════════════════════════ */
+
+  .page-turn {
+    transition: transform 0.85s var(--ease-book);
+    transform-style: preserve-3d;
   }
-  .loader-line {
-    width: 0;
-    animation: loaderLine 0.4s ease 0.3s forwards;
+  .page-turn[data-turned] {
+    transform: rotateY(-180deg);
   }
-  .loader-text {
-    opacity: 0;
-    animation: loaderFade 0.35s ease 0.5s forwards;
+  .page-turn-face {
+    backface-visibility: hidden;
+  }
+  .page-turn-face[data-face="back"] {
+    transform: rotateY(180deg);
   }
 }

@@ -96,17 +96,24 @@ const jsonLd = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-GB" className={`${comfortaa.variable} antialiased`}>
+    <html
+      lang="en-GB"
+      className={`${comfortaa.variable} antialiased`}
+      // Inline so the ink is painted the moment the HTML parses. The
+      // stylesheet is render-blocking, and its arrival is the difference
+      // between a dark first frame and a white flash on a dark site.
+      style={{ backgroundColor: "#1A1714" }}
+    >
       <head>
         <script
           type="application/ld+json"
           // Static object under our control — no user input reaches it.
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {/* Without JS the loader never lifts and the reveal never fires —
-            so drop both and show the page as-is. */}
+        {/* Without JS the book never opens and the reveal never fires, so
+            un-fold both — otherwise the page renders shut. */}
         <noscript>
-          <style>{`.rev{opacity:1 !important;transform:none !important}[data-loader]{display:none !important}`}</style>
+          <style>{`.rev{opacity:1!important;transform:none!important}.book,.book-leaf{transform:none!important;opacity:1!important;animation:none!important;box-shadow:none!important}.book-leaf::after{display:none!important}.page-turn{transform:none!important}`}</style>
         </noscript>
       </head>
       <body className="min-h-dvh bg-ink text-paper">{children}</body>

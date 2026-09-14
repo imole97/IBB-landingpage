@@ -1,58 +1,79 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Wordmark } from "@/components/ui/Wordmark";
-import { site } from "@/lib/site";
 
-/** Prototype loader runs 2600ms. That's a bounce on a holding page. */
-const LOADER_MS = 900;
+/** Cap on waiting for fonts — a slow font can never hold the page shut. */
+const FONT_WAIT_CAP_MS = 400;
+
+/** The cover's own reveal is 0.6s; let it settle before the hinge moves. */
+const OPEN_AT_MS = 620;
+
+/** ~70% into the 1.1s swing, so the leaf's content overlaps the opening. */
+const REVEAL_AFTER_OPEN_MS = 780;
 
 /**
- * Ports #loader (prototype lines 55–87) and owns the reveal handoff:
- * when the loader lifts, `data-revealed` lands on the wrapper and every
- * <Reveal> beneath it fades up on its own delay step.
+ * Choreographs the book opening, in three beats:
  *
- * Content is in the DOM the whole time — the loader is an overlay, not a
- * gate — so it is fully present for crawlers. Reduced motion is handled
- * entirely in CSS: the loader is display:none and .rev has no rules, so
- * the page is simply visible with no timing involved.
+ *   data-cover     the shut book's cover fades in
+ *   data-opened    the leaf swings on the spine, shadow into the gutter
+ *   data-revealed  the leaf's content fades up as it settles
+ *
+ * Under reduced motion none of the CSS reading these attributes exists,
+ * so the spread renders open and still whatever happens here.
  */
 export function Stage({ children }: { children: React.ReactNode }) {
-  const [revealed, setRevealed] = useState(false);
-  const [loaderGone, setLoaderGone] = useState(false);
+  const [phase, setPhase] = useState<"shut" | "cover" | "opened" | "revealed">(
+    "shut",
+  );
 
   useEffect(() => {
-    const lift = setTimeout(() => setRevealed(true), LOADER_MS);
-    const clear = setTimeout(() => setLoaderGone(true), LOADER_MS + 800);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let cancelled = false;
+
+    const begin = () => {
+      if (cancelled) return;
+      // Next frame, so the folded start state is painted before anything
+      // transitions away from it.
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        setPhase("cover");
+        timers.push(setTimeout(() => setPhase("opened"), OPEN_AT_MS));
+        timers.push(
+          setTimeout(
+            () => setPhase("revealed"),
+            OPEN_AT_MS + REVEAL_AFTER_OPEN_MS,
+          ),
+        );
+      });
+    };
+
+    // The wordmark is `priority`, so fonts are the only thing worth
+    // waiting on — and only briefly.
+    const cap = setTimeout(begin, FONT_WAIT_CAP_MS);
+    timers.push(cap);
+    document.fonts?.ready.then(() => {
+      clearTimeout(cap);
+      begin();
+    });
+
     return () => {
-      clearTimeout(lift);
-      clearTimeout(clear);
+      cancelled = true;
+      timers.forEach(clearTimeout);
     };
   }, []);
 
-  return (
-    <>
-      {!loaderGone && (
-        <div
-          aria-hidden
-          data-loader=""
-          className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-ink transition-[opacity,visibility] duration-700 ${
-            revealed ? "invisible opacity-0" : "visible opacity-100"
-          }`}
-        >
-          <div className="loader-logo w-[min(280px,60vw)]">
-            <Wordmark priority sizes="(max-width: 480px) 60vw, 280px" />
-          </div>
-          <div className="loader-line mt-8 h-px bg-taupe" />
-          <div className="loader-text mt-6 text-[11px] font-medium tracking-label text-taupe-light uppercase sm:text-[13px]">
-            {site.locations}
-          </div>
-        </div>
-      )}
+  const reached = (target: typeof phase) =>
+    ["shut", "cover", "opened", "revealed"].indexOf(phase) >=
+    ["shut", "cover", "opened", "revealed"].indexOf(target);
 
-      <div data-revealed={revealed ? "" : undefined} className="contents">
-        {children}
-      </div>
-    </>
+  return (
+    <div
+      className="book-stage min-h-dvh overflow-hidden bg-ink"
+      data-cover={reached("cover") ? "" : undefined}
+      data-opened={reached("opened") ? "" : undefined}
+      data-revealed={reached("revealed") ? "" : undefined}
+    >
+      {children}
+    </div>
   );
 }
