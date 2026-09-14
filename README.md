@@ -38,6 +38,7 @@ npm run dev
 | `npm run build` / `npm start` | Production build and serve |
 | `npm run lint` | ESLint |
 | `npm run logo:light` | Regenerates `public/logo-light.png` — only needed if `public/logo.png` changes |
+| `npm run emails:preview` | Renders the transactional emails to `.preview/emails/*.html` so you can open them in a browser without sending anything |
 
 ### Why there are two logo files
 
@@ -53,7 +54,8 @@ pre-recoloured `public/logo-light.png` instead.
 | `RESEND_API_KEY` | From [resend.com/api-keys](https://resend.com/api-keys) |
 | `RESEND_FROM` | Must be on a domain **verified in Resend** (SPF + DKIM in DNS) |
 | `NOTIFY_EMAIL` | Where signups are delivered |
-| `NEXT_PUBLIC_SITE_URL` | Canonical origin — drives metadata, sitemap, robots and JSON-LD |
+| `NEXT_PUBLIC_SITE_URL` | Canonical origin — drives metadata, sitemap, robots and JSON-LD. **Inlined at build time**, so it must be set when the build runs |
+| `SITE_URL` | Optional runtime override, read per request. Server-side code (emails) prefers it, so a build missing the public var can't bake a wrong origin into a link or the logo |
 
 Without the first three, `POST /api/subscribe` returns a 503 and the form says
 signups aren't open yet, rather than failing silently.

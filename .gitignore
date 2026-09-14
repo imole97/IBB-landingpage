@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Keep the template committed; secrets stay out.
 !.env.example
+
+# Local email previews
+.preview

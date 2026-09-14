@@ -30,10 +30,17 @@ function resolveOrigin(raw: string | undefined): string {
   }
 }
 
+/**
+ * NEXT_PUBLIC_* is inlined at build time, so server code that reads it
+ * gets whatever was set when the bundle was built — not what's set when
+ * the request runs. That's fine on Vercel, where both are the same, but
+ * it silently bakes the wrong origin into transactional emails if a build
+ * ever happens without it. SITE_URL is read at runtime and wins.
+ */
 export const site = {
   name: "Interiors By B.",
   shortName: "IBB",
-  url: resolveOrigin(process.env.NEXT_PUBLIC_SITE_URL),
+  url: resolveOrigin(process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL),
   tagline: "Curated. Curious. Connected.",
   motto: "Every space has a story.",
   edition: "First Edition · 2026",
