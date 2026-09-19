@@ -9,8 +9,10 @@ export const dynamic = "force-dynamic";
 
 const schema = z.object({
   email: z.email().max(254),
+  /** Optional — plenty of the studio's clients are homeowners. */
+  company: z.string().trim().max(120).optional(),
   /** Honeypot — must stay empty. */
-  company: z.string().max(200).optional(),
+  website: z.string().max(200).optional(),
 });
 
 /**
@@ -50,16 +52,21 @@ export async function POST(request: Request) {
 
   const parsed = schema.safeParse(payload);
   if (!parsed.success) {
-    return NextResponse.json(
-      { ok: false, error: "That address doesn't look right. Mind checking it?" },
-      { status: 400 },
-    );
+    // Say which field is wrong — a company name that's too long shouldn't
+    // be reported as a bad email address.
+    const field = parsed.error.issues[0]?.path[0];
+    const error =
+      field === "company"
+        ? "That company name is a little long — 120 characters at most."
+        : "That address doesn't look right. Mind checking it?";
+    return NextResponse.json({ ok: false, error }, { status: 400 });
   }
 
-  const { email, company } = parsed.data;
+  const { email, website } = parsed.data;
+  const company = parsed.data.company || undefined;
 
   // Honeypot tripped: look successful, do nothing.
-  if (company) return NextResponse.json({ ok: true });
+  if (website) return NextResponse.json({ ok: true });
 
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
@@ -93,7 +100,7 @@ export async function POST(request: Request) {
 
   if (mocking) {
     console.warn(
-      `[subscribe] MOCK — nothing sent. Would have told ${notify ?? "NOTIFY_EMAIL (unset)"} about ${email}`,
+      `[subscribe] MOCK — nothing sent. Would have told ${notify ?? "NOTIFY_EMAIL (unset)"} about ${email}${company ? ` (${company})` : ""}`,
     );
     // Stand in for the provider round-trip, so the submitting state lasts
     // about as long as it will in production.
@@ -118,9 +125,9 @@ export async function POST(request: Request) {
       from,
       to: notify,
       replyTo: email,
-      subject: `New waitlist signup — ${email}`,
-      html: notificationEmail({ email, ip }),
-      text: `New waitlist signup: ${email}\nIP: ${ip}\nAt: ${new Date().toISOString()}`,
+      subject: `New waitlist signup — ${company ? `${company}, ` : ""}${email}`,
+      html: notificationEmail({ email, company, ip }),
+      text: `New waitlist signup: ${email}${company ? `\nCompany: ${company}` : ""}\nIP: ${ip}\nAt: ${new Date().toISOString()}`,
     });
 
     if (notification.error) throw new Error(notification.error.message);

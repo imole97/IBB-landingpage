@@ -28,6 +28,7 @@ const files = {
   "confirmation.html": confirmationEmail(),
   "notification.html": notificationEmail({
     email: "adaeze.okonkwo@gmail.com",
+    company: "Okonkwo & Daughters",
     ip: "102.89.34.17",
   }),
 };

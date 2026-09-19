@@ -144,8 +144,11 @@ body {
   touch-action: pinch-zoom;
 }
 
-/* A page. page-flip sets its size and position once it has mounted. */
+/* A page. page-flip sets its size and position once it has mounted.
+   It's a size container, so the spacing inside can be proportioned to the
+   page's own height (cqh) rather than guessing at the screen's. */
 .book-page {
+  container-type: size;
   overflow: hidden;
   background: linear-gradient(135deg, #1a1611 0%, #2c2419 50%, #1f1a14 100%);
 }
@@ -191,8 +194,9 @@ body {
   display: none;
 }
 
-/* Phones: the page is the screen. No frame, no edges peeking out. */
-@media (width < 40rem) {
+/* Phones, and any screen too short for a book-shaped page (a phone on its
+   side): the page is the screen. No frame, no edges peeking out. */
+@media (width < 40rem), (height < 32rem) {
   .book-frame {
     width: 100vw;
     height: 100dvh;
@@ -267,20 +271,43 @@ body {
   }
 }
 
-/* Short screens (small phones, landscape tablets). Page 2 holds the bio,
-   the form and the links on one page, so it compacts rather than
-   clipping. Descendant selectors so they win over the utilities. */
-@media (max-height: 44rem) {
-  .about-page {
-    gap: 0.9rem;
-    padding-block: 1.75rem;
-  }
+/* ══════════════════════════════════════════════════════════════
+   FITTING THE PAGE
+   Every page has to hold all of its content, on any screen. Spacing is
+   proportioned to the page's height, so a shorter page is a tighter
+   page; <PageFit> scales the content down only if that still isn't
+   enough. Everything keys off the page, not the viewport, because the
+   page is what the content has to fit inside.
+   ══════════════════════════════════════════════════════════════ */
+
+.cover-page,
+.thanks-page {
+  padding-block: clamp(1.25rem, 7cqh, 3.5rem);
+}
+/* Room at the foot of the cover for the "Open" hint. */
+.cover-page {
+  padding-bottom: clamp(3.5rem, 10cqh, 5.25rem);
+}
+
+.about-page {
+  padding-block: clamp(1rem, 5.5cqh, 4rem);
+}
+.about-page .page-fit {
+  gap: clamp(0.6rem, 2.6cqh, 1.4rem);
+}
+
+/* Shorter pages: slightly smaller body copy and tighter form rows, so the
+   content fits by tightening rather than by being scaled down. */
+@container (max-height: 780px) {
   .about-page p {
     font-size: 13px;
     line-height: 1.6;
   }
   .about-page form input {
     padding-block: 0.4rem;
+  }
+  .about-page form .grid {
+    row-gap: 0.7rem;
   }
   .about-page form button[type="submit"] {
     margin-top: 0.9rem;
@@ -289,6 +316,46 @@ body {
   .about-page form [aria-live] {
     margin-top: 0.5rem;
   }
+}
+
+/* Very short pages (a small phone with its toolbars showing, a 768px
+   laptop): a second, tighter step, still before any scaling. */
+@container (max-height: 600px) {
+  .about-page .page-fit {
+    gap: 0.5rem;
+  }
+  .about-page p {
+    line-height: 1.5;
+  }
+  .about-page form label {
+    margin-bottom: 0.3rem;
+  }
+  /* The rule above "The first edition". */
+  .about-page .about-form > div:first-child {
+    margin-bottom: 0.6rem;
+  }
+}
+
+/* Wide, short pages — a phone on its side. Stacking everything into ~350px
+   of height would scale it down to unreadable, so the bio sits beside the
+   form instead: two columns, each half the height. */
+@container (min-aspect-ratio: 3 / 2) and (max-height: 560px) {
+  .about-page .page-fit {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-areas:
+      "heading form"
+      "bio     form"
+      "links   form"
+      "back    form";
+    align-content: center;
+    column-gap: clamp(1.5rem, 5cqw, 3rem);
+  }
+  .about-page .about-heading { grid-area: heading; }
+  .about-page .about-bio { grid-area: bio; }
+  .about-page .about-form { grid-area: form; align-self: center; }
+  .about-page .about-links { grid-area: links; }
+  .about-page .about-back { grid-area: back; }
 }
 
 /* page-flip writes its minWidth / minHeight settings onto the root as

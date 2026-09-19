@@ -62,11 +62,35 @@ const bracket = (corner: "tr" | "bl") => {
 };
 
 /**
+ * Anything a visitor typed goes through this before it touches the HTML —
+ * a company name of `<a href=…>` would otherwise land in the studio's
+ * inbox as live markup.
+ */
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+/**
  * Sent to the studio when someone joins the list.
  * Deliberately plain — this one is an alert, meant to be scanned in a
  * notification shade, not admired.
  */
-export function notificationEmail({ email, ip }: { email: string; ip: string }) {
+export function notificationEmail({
+  email: rawEmail,
+  company: rawCompany,
+  ip: rawIp,
+}: {
+  email: string;
+  company?: string;
+  ip: string;
+}) {
+  const email = escapeHtml(rawEmail);
+  const company = rawCompany ? escapeHtml(rawCompany) : "";
+  const ip = escapeHtml(rawIp);
   return shell(
     `
     <div style="height:44px;"></div>
@@ -75,6 +99,11 @@ export function notificationEmail({ email, ip }: { email: string; ip: string }) 
     <p style="margin:0 0 6px;font-size:21px;line-height:1.4;color:${PAPER};">
       <a href="mailto:${email}" style="color:${PAPER};text-decoration:none;">${email}</a>
     </p>
+    ${
+      company
+        ? `<p style="margin:0 0 6px;font-size:15px;line-height:1.5;color:${TAUPE_LIGHT};">${company}</p>`
+        : ""
+    }
     <p style="margin:0 0 28px;font-size:13px;line-height:1.9;color:${TAUPE_LIGHT};">
       ${new Date().toUTCString()}<br>IP ${ip}
     </p>
@@ -86,7 +115,7 @@ export function notificationEmail({ email, ip }: { email: string; ip: string }) 
       ${site.colophon}
     </p>
   `,
-    `New waitlist signup — ${email}`,
+    `New waitlist signup — ${company ? `${company}, ` : ""}${email}`,
   );
 }
 
