@@ -110,10 +110,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           // Static object under our control — no user input reaches it.
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {/* Without JS the book never opens and the reveal never fires, so
-            un-fold both — otherwise the page renders shut. */}
+        {/* Without JS page-flip never mounts, so there's nothing to turn.
+            Lay the cover and the About page out as an ordinary scrolling
+            document instead — every word readable — and keep the
+            thank-you out of it, since it can't be reached. */}
         <noscript>
-          <style>{`.rev{opacity:1!important;transform:none!important}.book,.book-leaf{transform:none!important;opacity:1!important;animation:none!important;box-shadow:none!important}.book-leaf::after{display:none!important}.page-turn{transform:none!important}`}</style>
+          <style>{`.rev,.book-hint{opacity:1!important;transform:none!important}.book-scene{display:block!important;overflow:visible!important;touch-action:auto!important}.book-frame{width:auto!important;height:auto!important;aspect-ratio:auto!important}.book-frame::before,.book-frame::after,.book-hint{display:none!important}.book-frame .book-page{position:relative!important;display:block!important;min-height:100dvh}.book-frame .book-page[data-page="2"]{display:none!important}.book-page-content{height:auto!important;min-height:100dvh}`}</style>
         </noscript>
       </head>
       <body className="min-h-dvh bg-ink text-paper">{children}</body>

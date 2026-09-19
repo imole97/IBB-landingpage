@@ -1,13 +1,14 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useTurnPage } from "@/components/Book";
 import { Field, SubmitButton } from "@/components/ui/Field";
-import { Flipper } from "@/components/ui/Flipper";
 import { Label } from "@/components/ui/Label";
 
 type Status = "idle" | "submitting" | "done" | "error";
 
 export function SignupForm() {
+  const { showThanks } = useTurnPage();
   const emailId = useId();
   const statusId = useId();
   const [status, setStatus] = useState<Status>("idle");
@@ -47,19 +48,19 @@ export function SignupForm() {
         return;
       }
 
-      // Deliberately no form.reset(): the front face stays visible for the
-      // first half of the turn, so clearing it makes the address the person
-      // just typed visibly vanish mid-flip. "done" is terminal — the form
-      // is never shown again.
+      // Deliberately no form.reset(): this leaf stays visible for the first
+      // half of the turn, so clearing it would make the address the person
+      // just typed visibly vanish mid-turn.
       setStatus("done");
+      showThanks();
     } catch {
       setStatus("error");
       setMessage("We couldn't reach the studio. Please try again in a moment.");
     }
   }
 
-  const form = (
-    <form onSubmit={onSubmit} noValidate>
+  return (
+    <form onSubmit={onSubmit} noValidate className="max-w-[440px]">
       <Label as="label" htmlFor={emailId} size="sm" className="mb-2.5 block">
         Email
       </Label>
@@ -114,24 +115,5 @@ export function SignupForm() {
         {message}
       </p>
     </form>
-  );
-
-  // Joining the list is the one moment this page changes state, so it gets
-  // the book's own gesture: the panel turns like a page.
-  return (
-    <Flipper
-      turned={status === "done"}
-      className="max-w-[440px]"
-      front={form}
-      back={
-        // Ports .form-success — 20px taupe, the prototype's own copy.
-        <p
-          role="status"
-          className="text-[18px] leading-relaxed text-taupe sm:text-[20px]"
-        >
-          Thank you. We&rsquo;ll be in touch to begin your story.
-        </p>
-      }
-    />
   );
 }

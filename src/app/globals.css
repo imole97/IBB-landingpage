@@ -56,6 +56,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* A sideways trackpad swipe turns the page back. Without this, the
+     browser also treats it as its own Back gesture and leaves the site. */
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -77,35 +80,173 @@ body {
   outline-offset: 4px;
 }
 
+
 /* ══════════════════════════════════════════════════════════════
-   REVEAL — prototype .rev / .rev-d1…d5 (lines 575–581)
-   Motion is opt-in: without it, content is simply visible.
+   THE BOOK
+   One page at a time, turned with page-flip (StPageFlip), which
+   curls the paper from the corner rather than rotating a card.
+   Everything here is the object the pages live in: the frame,
+   the pages beneath it, the binding. page-flip draws the turn.
    ══════════════════════════════════════════════════════════════ */
 
-/* Reduced motion: none of the rules below are defined, so the spread is
-   simply there — open, still, and fully visible with no timing at all. */
+/* The whole viewport is the table the book lies on. Nothing scrolls —
+   scroll gestures turn pages instead — but pinch-zoom must survive. */
+.book-scene {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: pinch-zoom;
+  background:
+    radial-gradient(ellipse at 50% 42%, #231d17 0%, var(--color-ink) 70%);
+}
+
+/* Exactly one page wide, so page-flip never lays out a two-page spread. */
+.book-frame {
+  position: relative;
+  width: min(600px, 90vw, calc(88dvh * 0.75));
+  aspect-ratio: 3 / 4;
+}
+
+/* The pages underneath the one you're reading — the book's thickness.
+   Static layers, so they cost nothing and never move with the turn. */
+.book-frame::before,
+.book-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(194 179 161 / 0.07);
+  border-left: 0;
+  background: #1d1813;
+  pointer-events: none;
+}
+.book-frame::before {
+  transform: translate(5px, 5px);
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.55);
+}
+.book-frame::after {
+  transform: translate(10px, 10px);
+  z-index: -1;
+  background: #17130f;
+}
+
+/* page-flip's root. It injects its own stylesheet; this only keeps it
+   above the page edges and stops its pan-y from scrolling the page. */
+.book-root {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+.book-root.stf__parent {
+  touch-action: pinch-zoom;
+}
+
+/* A page. page-flip sets its size and position once it has mounted. */
+.book-page {
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a1611 0%, #2c2419 50%, #1f1a14 100%);
+}
+.book-page[data-page="1"] {
+  background: linear-gradient(135deg, #18140f 0%, #221c16 50%, #1a1611 100%);
+}
+
+/* The binding. Light pools away from the spine, so the left edge of
+   every page sits in a little shadow — the hinge the paper curls on. */
+.book-page::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  z-index: 5;
+  width: 36px;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    rgb(0 0 0 / 0.45) 0%,
+    rgb(0 0 0 / 0.12) 45%,
+    transparent 100%
+  );
+}
+
+/* The underside of a turning page. page-flip draws it from a clone of the
+   front; paper's back is blank, so the clone keeps only its surface. */
+.book-page--back {
+  background: linear-gradient(135deg, #221c16 0%, #2a231b 55%, #1f1a14 100%);
+}
+.book-page--back > * {
+  visibility: hidden;
+}
+
+/* Before page-flip mounts, the source pages are in normal flow. Show
+   only the cover, sized to the frame, so there's no flash of stacked
+   pages while the script loads. */
+.book-frame:not([data-ready]) .book-page {
+  position: absolute;
+  inset: 0;
+}
+.book-frame:not([data-ready]) .book-page:not([data-page="0"]) {
+  display: none;
+}
+
+/* Phones: the page is the screen. No frame, no edges peeking out. */
+@media (width < 40rem) {
+  .book-frame {
+    width: 100vw;
+    height: 100dvh;
+    aspect-ratio: auto;
+  }
+  .book-frame::before,
+  .book-frame::after {
+    display: none;
+  }
+  .book-page::before {
+    width: 18px;
+  }
+}
+
+/* Short screens: page 2 carries the bio, the form and the links, so it
+   tightens up rather than overflowing. If it still can't fit, the page
+   scrolls — and Book only turns once that scroll has hit its end. */
+.book-page-content {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.book-page-content::-webkit-scrollbar {
+  display: none;
+}
+
+/* The "Open" hint on the cover fades in once, after the cover itself. */
+@media (prefers-reduced-motion: no-preference) {
+  .book-hint {
+    opacity: 0;
+    animation: hintIn 0.9s ease 1.6s forwards;
+  }
+  @keyframes hintIn {
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REVEAL — prototype .rev / .rev-d1…d5 (lines 575–581)
+   Only the cover uses it now: its content settles in on arrival.
+   Motion is opt-in; without it, content is simply visible.
+   ══════════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: no-preference) {
   .rev {
     opacity: 0;
     transform: translateY(24px);
     transition:
-      opacity 0.85s ease,
-      transform 0.85s ease;
+      opacity 0.6s ease,
+      transform 0.6s ease;
   }
-  /* Content on the leaf waits for the book to be most of the way open. */
-  [data-revealed] .rev {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* Content ON THE COVER arrives first, while the book is still shut — a
-     closed book shows its cover, it isn't a blank slab. Quicker than the
-     leaf's reveal so the cover has settled before the hinge moves. */
-  .rev-cover {
-    transition-duration: 0.6s;
-  }
-  [data-cover] .rev-cover {
+  [data-cover] .rev {
     opacity: 1;
     transform: translateY(0);
   }
@@ -124,127 +265,36 @@ body {
   .rev-d5 {
     transition-delay: 0.65s;
   }
+}
 
-  /* ════════════════════════════════════════════════════════════
-     THE BOOK OPENS
-     The coming-soon page is the cover, so it gets the one gesture a
-     cover has. Same hinge and easing as the prototype's page turn
-     (lines 129–156), used once.
+/* Short screens (small phones, landscape tablets). Page 2 holds the bio,
+   the form and the links on one page, so it compacts rather than
+   clipping. Descendant selectors so they win over the utilities. */
+@media (max-height: 44rem) {
+  .about-page {
+    gap: 0.9rem;
+    padding-block: 1.75rem;
+  }
+  .about-page p {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .about-page form input {
+    padding-block: 0.4rem;
+  }
+  .about-page form button[type="submit"] {
+    margin-top: 0.9rem;
+    padding-block: 0.8rem;
+  }
+  .about-page form [aria-live] {
+    margin-top: 0.5rem;
+  }
+}
 
-     Only the left leaf moves. Folded at rotateY(180deg) about its
-     right edge it lands exactly on the front cover's footprint, and
-     its hidden backface means it isn't drawn — so the first frame is
-     a single cover-sized panel: a shut book on a dark table.
-     ════════════════════════════════════════════════════════════ */
-
-  /* Hinge at the spine, not at the viewport edge. */
-  .book-stage {
-    perspective: 2600px;
-    perspective-origin: 50% 50%;
-  }
-
-  /* The book slides right as it opens, so the shut cover reads centred.
-     preserve-3d carries the stage's perspective down to the leaf. */
-  .book {
-    transform: translateX(-25%);
-    transform-style: preserve-3d;
-    transition: transform 1.1s var(--ease-book);
-  }
-  [data-opened] .book {
-    transform: translateX(0);
-  }
-
-  .book-leaf {
-    transform-origin: right center;
-    transform: rotateY(180deg);
-    backface-visibility: hidden;
-    transition:
-      transform 1.1s var(--ease-book),
-      box-shadow 1.1s var(--ease-book);
-    will-change: transform;
-  }
-  [data-opened] .book-leaf {
-    transform: rotateY(0deg);
-    box-shadow: none;
-  }
-
-  /* The shadow the cover throws into the gutter mid-swing. A transition
-     can't hold a mid-point, so it rides its own keyframe. */
-  [data-opened] .book-leaf {
-    animation: leafShadow 1.1s var(--ease-book);
-  }
-  @keyframes leafShadow {
-    0%,
-    100% {
-      box-shadow: none;
-    }
-    45% {
-      box-shadow: 40px 0 70px rgba(0, 0, 0, 0.5);
-    }
-  }
-
-  /* Prototype's leading-edge gradient, mirrored: the leaf darkens along
-     the edge that is turning away from the light. */
-  .book-leaf::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 100;
-    pointer-events: none;
-    opacity: 1;
-    transition: opacity 1.1s var(--ease-book);
-    background: linear-gradient(
-      to left,
-      rgba(0, 0, 0, 0) 60%,
-      rgba(0, 0, 0, 0.25) 80%,
-      rgba(0, 0, 0, 0.55) 100%
-    );
-  }
-  [data-opened] .book-leaf::after {
-    opacity: 0;
-  }
-
-  /* Below the spread there is no hinge and nothing to open — the panel
-     beneath the cover simply rises into place. */
-  @media (width < 64rem) {
-    .book {
-      transform: none;
-    }
-    .book-leaf {
-      transform: translateY(28px);
-      opacity: 0;
-      backface-visibility: visible;
-      transition:
-        transform 0.9s var(--ease-book),
-        opacity 0.9s ease;
-    }
-    [data-opened] .book-leaf {
-      transform: translateY(0);
-      opacity: 1;
-    }
-    [data-opened] .book-leaf {
-      animation: none;
-    }
-    .book-leaf::after {
-      display: none;
-    }
-  }
-
-  /* ════════════════════════════════════════════════════════════
-     THE PAGE TURN — used where the page changes state
-     ════════════════════════════════════════════════════════════ */
-
-  .page-turn {
-    transition: transform 0.85s var(--ease-book);
-    transform-style: preserve-3d;
-  }
-  .page-turn[data-turned] {
-    transform: rotateY(-180deg);
-  }
-  .page-turn-face {
-    backface-visibility: hidden;
-  }
-  .page-turn-face[data-face="back"] {
-    transform: rotateY(180deg);
-  }
+/* page-flip writes its minWidth / minHeight settings onto the root as
+   inline styles. Book sets an unreachable minWidth to force single-page
+   layout, so those inline minimums must never actually apply. */
+.book-root.stf__parent {
+  min-width: 0 !important;
+  min-height: 0 !important;
 }
