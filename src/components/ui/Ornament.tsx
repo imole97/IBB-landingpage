@@ -30,6 +30,55 @@ export function Ornament({ className }: { className?: string }) {
   );
 }
 
+/*
+ * The book furniture below only appears on the full-screen desktop page
+ * (see "THE DESKTOP PAGE" in globals.css); elsewhere it's display: none.
+ * All of it is decoration, so it's hidden from assistive tech.
+ */
+
+/** A page number, set small in a corner. */
+export function Folio({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div aria-hidden className={cn("folio", className)}>
+      {children}
+    </div>
+  );
+}
+
+/** The title running up the page's left edge, as on a book's spine. */
+export function Spine({ children }: { children: React.ReactNode }) {
+  return (
+    <span aria-hidden className="page-spine">
+      {children}
+    </span>
+  );
+}
+
+/** A book's running head: a line of small caps across the top, ruled. */
+export function RunningHead({ left, right }: { left: string; right: string }) {
+  return (
+    <div aria-hidden className="running-head">
+      <span>{left}</span>
+      <span>{right}</span>
+    </div>
+  );
+}
+
+/** The chapter numeral, huge and barely there, behind the page. */
+export function GhostNumeral({ children }: { children: React.ReactNode }) {
+  return (
+    <span aria-hidden className="ghost-numeral">
+      {children}
+    </span>
+  );
+}
+
 /**
  * Ports .cover-front-corner / -corner-bl — the L-shaped 1px brackets.
  * Rendered as a pair on opposite corners; hidden below 480px, where the

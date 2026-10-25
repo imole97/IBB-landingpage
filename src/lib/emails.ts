@@ -153,7 +153,7 @@ export function confirmationEmail() {
     <p style="margin:0 0 22px;font-size:15px;line-height:1.85;color:${MUTED};">
       ${site.name} is a residential and commercial design studio working
       across London and Lagos. We&rsquo;re putting the finishing touches to
-      our first edition &mdash; you&rsquo;ll be among the first to see it.
+      our limited edition &mdash; you&rsquo;ll be among the first to see it.
     </p>
 
     <p style="margin:0;font-size:15px;line-height:1.8;color:${TAUPE_LIGHT};font-style:italic;">

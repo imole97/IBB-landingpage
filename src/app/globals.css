@@ -89,8 +89,8 @@ body {
    the pages beneath it, the binding. page-flip draws the turn.
    ══════════════════════════════════════════════════════════════ */
 
-/* The whole viewport is the table the book lies on. Nothing scrolls —
-   scroll gestures turn pages instead — but pinch-zoom must survive. */
+/* The whole viewport is the book's page. Nothing scrolls — scroll
+   gestures turn pages instead — but pinch-zoom must survive. */
 .book-scene {
   position: relative;
   display: grid;
@@ -103,37 +103,17 @@ body {
     radial-gradient(ellipse at 50% 42%, #231d17 0%, var(--color-ink) 70%);
 }
 
-/* Exactly one page wide, so page-flip never lays out a two-page spread. */
+/* On every screen the page is the screen: a full-bleed page you're
+   reading, not a small book on a table. Exactly one page wide, so
+   page-flip never lays out a two-page spread. */
 .book-frame {
   position: relative;
-  width: min(600px, 90vw, calc(88dvh * 0.75));
-  aspect-ratio: 3 / 4;
+  width: 100vw;
+  height: 100dvh;
 }
 
-/* The pages underneath the one you're reading — the book's thickness.
-   Static layers, so they cost nothing and never move with the turn. */
-.book-frame::before,
-.book-frame::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 1px solid rgb(194 179 161 / 0.07);
-  border-left: 0;
-  background: #1d1813;
-  pointer-events: none;
-}
-.book-frame::before {
-  transform: translate(5px, 5px);
-  box-shadow: 0 30px 80px rgb(0 0 0 / 0.55);
-}
-.book-frame::after {
-  transform: translate(10px, 10px);
-  z-index: -1;
-  background: #17130f;
-}
-
-/* page-flip's root. It injects its own stylesheet; this only keeps it
-   above the page edges and stops its pan-y from scrolling the page. */
+/* page-flip's root. It injects its own stylesheet; this only stops its
+   pan-y from scrolling the page. */
 .book-root {
   position: relative;
   z-index: 1;
@@ -194,20 +174,16 @@ body {
   display: none;
 }
 
-/* Phones, and any screen too short for a book-shaped page (a phone on its
-   side): the page is the screen. No frame, no edges peeking out. */
+/* The binding's shadow scales with the page: slim on a phone, broad
+   across a desktop. */
 @media (width < 40rem), (height < 32rem) {
-  .book-frame {
-    width: 100vw;
-    height: 100dvh;
-    aspect-ratio: auto;
-  }
-  .book-frame::before,
-  .book-frame::after {
-    display: none;
-  }
   .book-page::before {
     width: 18px;
+  }
+}
+@media (width >= 64rem) and (height >= 32rem) {
+  .book-page::before {
+    width: 56px;
   }
 }
 
@@ -330,7 +306,7 @@ body {
   .about-page form label {
     margin-bottom: 0.3rem;
   }
-  /* The rule above "The first edition". */
+  /* The rule above "The limited edition". */
   .about-page .about-form > div:first-child {
     margin-bottom: 0.6rem;
   }
@@ -364,4 +340,401 @@ body {
 .book-root.stf__parent {
   min-width: 0 !important;
   min-height: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THE SERVICES LIST
+   One list, two settings. On the book-sized page it's a line of
+   pipe-separated services with the last on a line of its own; on the
+   desktop page it becomes a numbered, ruled list (below).
+   ══════════════════════════════════════════════════════════════ */
+
+.services li {
+  display: inline;
+}
+.services li:not(:first-child):not(:last-child)::before {
+  content: " | ";
+}
+.services li:last-child {
+  display: block;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THE EDITORIAL PAGE — tablets and desktops
+   On a page this size, content is set like a printed page rather than
+   a centred column: anchored to generous margins on a 12-column grid,
+   with the furniture of a real book — a spine title, running heads,
+   folios, a chapter numeral, and a lifted corner to turn by. Keyed off
+   the page (like everything in FITTING THE PAGE), and only for pages
+   tall enough not to need the landscape-phone layout. Wide pages put
+   things side by side; upright pages (portrait tablets) stack them —
+   see the portrait block after this one.
+   ══════════════════════════════════════════════════════════════ */
+
+.folio,
+.page-spine,
+.running-head,
+.ghost-numeral {
+  display: none;
+}
+
+@container (min-width: 600px) and (min-height: 561px) {
+  .cover-page,
+  .about-page,
+  .thanks-page {
+    --margin-x: clamp(4.5rem, 7.5cqw, 9rem);
+    --margin-y: clamp(2.5rem, 7cqh, 5.5rem);
+    --gutter: clamp(1rem, 2cqw, 2.25rem);
+    padding: var(--margin-y) var(--margin-x);
+    align-items: stretch;
+    text-align: left;
+  }
+  .page-fit {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--gutter);
+    min-height: 100%;
+  }
+
+  /* ─── Book furniture ─── */
+  .page-spine {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: clamp(1.75rem, 2.8cqw, 3rem);
+    writing-mode: vertical-rl;
+    transform: translateY(-50%) rotate(180deg);
+    font-size: 10px;
+    letter-spacing: var(--tracking-spine);
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: rgb(154 136 118 / 0.7);
+  }
+  .folio {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .page-folio {
+    position: absolute;
+    right: var(--margin-x);
+    bottom: calc(var(--margin-y) * 0.45);
+  }
+  .running-head {
+    display: flex;
+    position: absolute;
+    top: clamp(1.5rem, 3.5cqh, 2.5rem);
+    inset-inline: var(--margin-x);
+    justify-content: space-between;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid rgb(184 168 147 / 0.18);
+    font-size: 10px;
+    letter-spacing: var(--tracking-spine);
+    text-transform: uppercase;
+    color: rgb(154 136 118 / 0.75);
+  }
+  .ghost-numeral {
+    display: block;
+    position: absolute;
+    bottom: -0.2em;
+    left: calc(var(--margin-x) - 0.05em);
+    font-size: 58cqh;
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: transparent;
+    -webkit-text-stroke: 1px rgb(194 179 161 / 0.09);
+    pointer-events: none;
+    user-select: none;
+  }
+  .about-page,
+  .thanks-page {
+    padding-top: calc(var(--margin-y) + 3rem);
+  }
+
+  /* ─── Cover ─── */
+  .cover-page {
+    padding-bottom: calc(var(--margin-y) + 1.5rem);
+  }
+  .cover-page .page-fit {
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "ed ed ed ed ed ed . . . . . ."
+      "tg tg tg tg tg tg tg . mo mo mo mo"
+      "mk mk mk mk mk mk . . sv sv sv sv";
+  }
+  .cover-edition {
+    grid-area: ed;
+  }
+  .cover-edition > * {
+    margin: 0;
+  }
+
+  /* The tagline, large and stepped in a word at a time. */
+  .cover-tagline {
+    grid-area: tg;
+    align-self: center;
+  }
+  .cover-tagline > [aria-hidden] {
+    margin: 0 0 clamp(1.5rem, 4cqh, 2.75rem);
+  }
+  .cover-tagline p {
+    margin: 0;
+    font-size: clamp(2.75rem, 6.2cqw, 7rem);
+    font-weight: 300;
+    line-height: 1.06;
+    letter-spacing: -0.015em;
+  }
+  .cover-tagline .tagline-word {
+    display: block;
+  }
+  .cover-tagline .tagline-word:nth-child(2) {
+    padding-left: 1em;
+    color: var(--color-taupe-light);
+  }
+  .cover-tagline .tagline-word:nth-child(3) {
+    padding-left: 2em;
+  }
+
+  .cover-motto {
+    grid-area: mo;
+    align-self: end;
+    padding-bottom: clamp(0.5rem, 2cqh, 1.5rem);
+  }
+  .cover-motto::before {
+    content: "";
+    display: block;
+    width: 2.5rem;
+    height: 1px;
+    margin-bottom: 1.25rem;
+    background: var(--color-taupe);
+  }
+  .cover-motto p {
+    font-size: clamp(1.1rem, 1.55cqw, 1.6rem);
+    line-height: 1.5;
+  }
+
+  .cover-mark {
+    grid-area: mk;
+    align-self: end;
+    width: min(100%, 36cqw);
+    margin: 0;
+  }
+
+  .cover-services {
+    grid-area: sv;
+    align-self: end;
+  }
+  .cover-page .services {
+    margin: 0;
+    counter-reset: service;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    color: var(--color-taupe-light);
+  }
+  .cover-page .services li {
+    display: flex;
+    gap: 1.5em;
+    padding-block: 0.95em;
+    border-top: 1px solid rgb(184 168 147 / 0.2);
+  }
+  .cover-page .services li:last-child {
+    border-bottom: 1px solid rgb(184 168 147 / 0.2);
+  }
+  .cover-page .services li:nth-child(n)::before {
+    content: counter(service, decimal-leading-zero);
+    counter-increment: service;
+    color: var(--color-taupe);
+  }
+
+  /* "Open" moves into the bottom-right corner, where the page's corner
+     is lifted a little — the corner the turn will curl from. Hovering
+     lifts it further. The whole corner is the button. */
+  .cover-page .book-hint {
+    inset: auto 0 0 auto;
+    justify-content: flex-end;
+  }
+  .cover-page .book-hint button {
+    position: relative;
+    padding: 2.5rem var(--margin-x) clamp(1.25rem, 3.2cqh, 2.25rem) 3rem;
+  }
+  .cover-page .book-hint button::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: clamp(2.5rem, 3.6cqw, 3.5rem);
+    aspect-ratio: 1;
+    background: linear-gradient(
+      315deg,
+      var(--color-ink) 0 50%,
+      rgb(0 0 0 / 0.55) 50%,
+      #4d4136 52%,
+      #2c2419 100%
+    );
+    transform-origin: bottom right;
+    transition: transform 0.45s var(--ease-book);
+  }
+  .cover-page .book-hint button:hover::after,
+  .cover-page .book-hint button:focus-visible::after {
+    transform: scale(1.5);
+  }
+
+  /* ─── About ─── */
+  .about-page .page-fit {
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas:
+      "heading heading heading heading heading heading . form form form form form"
+      "bio     bio     bio     bio     bio     bio     . form form form form form"
+      "links   links   links   links   links   links   . form form form form form"
+      "back    back    back    back    back    back    . form form form form form";
+    row-gap: clamp(1.25rem, 3.5cqh, 2.5rem);
+  }
+  .about-page .about-heading {
+    grid-area: heading;
+  }
+  .about-page .about-bio {
+    grid-area: bio;
+    align-self: center;
+    max-width: 22em;
+    font-size: clamp(1.3rem, 2.15cqw, 2.1rem);
+    line-height: 1.5;
+  }
+  .about-page .about-form {
+    grid-area: form;
+    align-self: center;
+    padding-left: clamp(2rem, 4cqw, 4.5rem);
+    border-left: 1px solid rgb(184 168 147 / 0.18);
+  }
+  .about-page .about-links {
+    grid-area: links;
+  }
+  .about-page .about-back {
+    grid-area: back;
+  }
+
+  /* ─── Thank you ─── */
+  .thanks-page .page-fit {
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      "label label label label label label label . .      .      .      ."
+      "rule  rule  rule  rule  rule  rule  rule  . .      .      .      ."
+      "title title title title title title title . detail detail detail detail"
+      "mark  mark  mark  mark  .     .     .     . detail detail detail detail";
+  }
+  .thanks-page .thanks-label {
+    grid-area: label;
+    margin: 0;
+  }
+  .thanks-page .thanks-rule {
+    grid-area: rule;
+    margin: clamp(1.25rem, 3cqh, 2rem) 0 0;
+  }
+  .thanks-page .thanks-title {
+    grid-area: title;
+    align-self: center;
+    margin: 0;
+    font-size: clamp(3.5rem, 9cqw, 9.5rem);
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .thanks-page .thanks-mark {
+    grid-area: mark;
+    align-self: end;
+    width: min(100%, 18cqw);
+    margin: 0;
+  }
+  .thanks-page .thanks-detail {
+    grid-area: detail;
+    align-self: end;
+    align-items: flex-start;
+  }
+}
+
+/* Upright pages — a tablet held portrait. The same page, stacked: the
+   tagline takes the middle of the page, and everything that sat to the
+   right on a wide page moves below. */
+@container (min-width: 600px) and (min-height: 561px) and (max-aspect-ratio: 1 / 1) {
+  .cover-page,
+  .about-page,
+  .thanks-page {
+    --margin-x: clamp(4rem, 9.5cqw, 7rem);
+    --margin-y: clamp(2.5rem, 5.5cqh, 5rem);
+  }
+  .page-fit {
+    row-gap: clamp(1.5rem, 3.5cqh, 3rem);
+  }
+
+  /* ─── Cover ─── */
+  .cover-page .page-fit {
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas:
+      "ed ed ed ed ed ed ed ed . . . ."
+      "tg tg tg tg tg tg tg tg tg tg tg tg"
+      "mo mo mo mo mo mo mo mo mo mo mo mo"
+      "mk mk mk mk mk . sv sv sv sv sv sv";
+  }
+  .cover-tagline p {
+    font-size: clamp(3rem, 10cqw, 7rem);
+  }
+  .cover-tagline .tagline-word:nth-child(2) {
+    padding-left: 0.8em;
+  }
+  .cover-tagline .tagline-word:nth-child(3) {
+    padding-left: 1.6em;
+  }
+  .cover-motto {
+    padding-bottom: 0;
+  }
+  .cover-motto p {
+    font-size: clamp(1.15rem, 2.6cqw, 1.75rem);
+  }
+  .cover-mark {
+    width: 100%;
+    padding-bottom: 0.5rem;
+  }
+
+  /* ─── About ─── */
+  .about-page .page-fit {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto auto auto;
+    grid-template-areas:
+      "heading"
+      "bio"
+      "form"
+      "links"
+      "back";
+  }
+  .about-page .about-bio {
+    max-width: 24em;
+    font-size: clamp(1.3rem, 3.3cqw, 2.1rem);
+  }
+  .about-page .about-form {
+    max-width: 34rem;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  /* ─── Thank you ─── */
+  .thanks-page .page-fit {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-areas:
+      "label"
+      "rule"
+      "title"
+      "detail"
+      "mark";
+  }
+  .thanks-page .thanks-title {
+    font-size: clamp(3.5rem, 12cqw, 8rem);
+  }
+  .thanks-page .thanks-mark {
+    width: min(100%, 34cqw);
+  }
 }

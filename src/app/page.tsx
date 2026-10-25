@@ -8,7 +8,14 @@ import { TurnButton } from "@/components/TurnButton";
 import { Body } from "@/components/ui/Body";
 import { InstagramIcon } from "@/components/ui/InstagramIcon";
 import { Label } from "@/components/ui/Label";
-import { CornerBrackets, Rule } from "@/components/ui/Ornament";
+import {
+  CornerBrackets,
+  Folio,
+  GhostNumeral,
+  Rule,
+  RunningHead,
+  Spine,
+} from "@/components/ui/Ornament";
 import { Reveal } from "@/components/ui/Reveal";
 import { Wordmark } from "@/components/ui/Wordmark";
 import { site } from "@/lib/site";
@@ -16,7 +23,7 @@ import { site } from "@/lib/site";
 /**
  * The coming-soon page is a book, read one page at a time:
  *
- *   1. the cover — First Edition · 2026
+ *   1. the cover — Limited Edition · 2026
  *   2. About the Studio — the bio, the waitlist, the links
  *   3. the thank-you, reached only by joining the list
  *
@@ -47,37 +54,54 @@ function CoverPage() {
   return (
     <div className="cover-page book-page-content relative flex flex-col items-center justify-center-safe px-8 text-center sm:px-12">
       <CornerBrackets corners="tr-bl" />
+      <Spine>{site.name} &nbsp;·&nbsp; London &nbsp;·&nbsp; Lagos</Spine>
 
       <PageFit className="flex w-full flex-col items-center">
-        <Reveal>
+        <Reveal className="cover-edition">
           <Label size="lg" className="mb-10 sm:mb-12">
             {site.edition}
           </Label>
         </Reveal>
 
-        <Reveal delay={1} className="mb-9 w-[min(320px,68%)]">
+        <Reveal delay={1} className="cover-mark mb-9 w-[min(320px,68%)]">
           <h1 data-turn-focus tabIndex={-1} className="outline-none">
-            <Wordmark priority sizes="(max-width: 640px) 68vw, 320px" />
+            <Wordmark
+              priority
+              sizes="(max-width: 640px) 68vw, (max-width: 1023px) 320px, 40vw"
+            />
             <span className="sr-only">
               {site.name} — interior design studio, London and Lagos
             </span>
           </h1>
         </Reveal>
 
-        <Reveal delay={2} className="w-full">
+        <Reveal delay={2} className="cover-tagline w-full">
           <Rule className="mb-7" />
+          {/* One word per line on desktop; a single line everywhere else. */}
           <p className="mb-10 text-[15px] tracking-tagline text-paper sm:mb-12 sm:text-[18px]">
-            {site.tagline}
+            {site.tagline.split(" ").map((word, i) => (
+              <span key={i} className="tagline-word">
+                {i > 0 && " "}
+                {word}
+              </span>
+            ))}
           </p>
         </Reveal>
 
-        <Reveal delay={3}>
+        <Reveal delay={3} className="cover-motto">
           <p className="text-[14px] leading-relaxed text-taupe-light italic sm:text-[16px]">
             &ldquo;{site.motto}&rdquo;
           </p>
-          <p className="mt-8 text-[10px] tracking-[0.3em] text-taupe/70 uppercase sm:text-[11px]">
-            {site.colophon}
-          </p>
+        </Reveal>
+
+        {/* Pipe-separated with the last on its own line; a ruled list on
+            desktop. Both are the same list — see .services in globals.css. */}
+        <Reveal delay={4} className="cover-services">
+          <ul className="services mt-8 text-[10px] tracking-[0.3em] text-taupe/70 uppercase sm:text-[11px]">
+            {site.services.map((service) => (
+              <li key={service}>{service}</li>
+            ))}
+          </ul>
         </Reveal>
       </PageFit>
 
@@ -89,7 +113,7 @@ function CoverPage() {
             aria-hidden
             className="inline-block transition-transform duration-300 group-hover:translate-y-0.5 motion-reduce:transition-none"
           >
-            &darr;
+            &rarr;
           </span>
         </TurnButton>
       </div>
@@ -101,6 +125,9 @@ function AboutPage() {
   return (
     <div className="about-page book-page-content relative flex flex-col justify-center-safe px-8 sm:px-12">
       <CornerBrackets corners="tl-br" />
+      <RunningHead left={site.name} right="London · Lagos" />
+      <GhostNumeral>02</GhostNumeral>
+      <Folio className="page-folio">ii</Folio>
 
       <PageFit className="flex w-full flex-col">
         <div className="about-heading">
@@ -125,7 +152,7 @@ function AboutPage() {
         <div className="about-form w-full">
           <Rule align="start" className="mb-5" />
           <Label size="sm" className="mb-3">
-            The first edition
+            The limited edition
           </Label>
           <Body
             tone="onDark"
@@ -160,7 +187,7 @@ function AboutPage() {
           <TurnButton to="close">
             <span
               aria-hidden
-              className="inline-block transition-transform duration-300 group-hover:-translate-x-0.5 motion-reduce:transition-none"
+              className="inline-block transition-transform duration-300 group-hover:translate-x-0.5 motion-reduce:transition-none"
             >
               &larr;
             </span>

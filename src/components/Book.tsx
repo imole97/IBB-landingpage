@@ -320,9 +320,10 @@ export function Book({ pages }: { pages: ReactNode[] }) {
       const redraw = drawOnlyWhenNeeded(book);
       redrawRef.current = redraw;
 
-      // The frame's shape changes with the window — a phone's tall page, a
-      // desktop's 3:4 one. page-flip keeps the aspect it was created with,
-      // so keep its settings equal to the frame and have it re-lay out.
+      // The frame is the window, so its shape changes with it — a phone's
+      // tall page, a desktop's wide one. page-flip keeps the aspect it was
+      // created with, so keep its settings equal to the frame and have it
+      // re-lay out.
       const settings = book.getSettings();
       new ResizeObserver(([entry]) => {
         const { width: w, height: h } = entry.contentRect;
