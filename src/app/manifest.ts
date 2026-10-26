@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: `${site.name} — Interior Design Studio`,
     short_name: site.shortName,
-    description: site.metaDescription,
+    description: site.shareDescription,
     start_url: "/",
     display: "standalone",
     background_color: "#1A1714",

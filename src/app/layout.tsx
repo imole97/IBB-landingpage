@@ -12,7 +12,10 @@ const comfortaa = Comfortaa({
   display: "swap",
 });
 
+// Search results keep the cities (they help local search); anything a
+// person sees when the link is shared leaves them out.
 const title = `${site.name} — Interior Design Studio | London & Lagos`;
+const shareTitle = `${site.name} — Interior Design Studio`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -44,13 +47,13 @@ export const metadata: Metadata = {
     locale: "en_GB",
     url: site.url,
     siteName: site.name,
-    title,
+    title: shareTitle,
     description: site.shareDescription,
     emails: [site.email],
   },
   twitter: {
     card: "summary_large_image",
-    title,
+    title: shareTitle,
     description: site.shareDescription,
   },
   robots: {
