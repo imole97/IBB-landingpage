@@ -54,7 +54,7 @@ function CoverPage() {
   return (
     <div className="cover-page book-page-content relative flex flex-col items-center justify-center-safe px-8 text-center sm:px-12">
       <CornerBrackets corners="tr-bl" />
-      <Spine>{site.name} &nbsp;·&nbsp; London &nbsp;·&nbsp; Lagos</Spine>
+      <Spine>{site.name} &nbsp;·&nbsp; Interior Design Studio</Spine>
 
       <PageFit className="flex w-full flex-col items-center">
         <Reveal className="cover-edition">
@@ -63,11 +63,12 @@ function CoverPage() {
           </Label>
         </Reveal>
 
-        <Reveal delay={1} className="cover-mark mb-9 w-[min(320px,68%)]">
+        {/* The logo is the cover: the largest thing on the page. */}
+        <Reveal delay={1} className="cover-mark mb-8 w-[min(440px,86%)]">
           <h1 data-turn-focus tabIndex={-1} className="outline-none">
             <Wordmark
               priority
-              sizes="(max-width: 640px) 68vw, (max-width: 1023px) 320px, 40vw"
+              sizes="(max-width: 640px) 86vw, (max-width: 999px) 440px, 60vw"
             />
             <span className="sr-only">
               {site.name} — interior design studio, London and Lagos
@@ -76,28 +77,20 @@ function CoverPage() {
         </Reveal>
 
         <Reveal delay={2} className="cover-tagline w-full">
-          <Rule className="mb-7" />
-          {/* One word per line on desktop; a single line everywhere else. */}
-          <p className="mb-10 text-[15px] tracking-tagline text-paper sm:mb-12 sm:text-[18px]">
-            {site.tagline.split(" ").map((word, i) => (
-              <span key={i} className="tagline-word">
-                {i > 0 && " "}
-                {word}
-              </span>
-            ))}
-          </p>
-        </Reveal>
-
-        <Reveal delay={3} className="cover-motto">
-          <p className="text-[14px] leading-relaxed text-taupe-light italic sm:text-[16px]">
-            &ldquo;{site.motto}&rdquo;
+          <Rule className="mb-6" />
+          <p className="text-[13px] tracking-tagline text-taupe-light sm:text-[15px]">
+            {site.tagline}
           </p>
         </Reveal>
 
         {/* Pipe-separated with the last on its own line; a ruled list on
-            desktop. Both are the same list — see .services in globals.css. */}
-        <Reveal delay={4} className="cover-services">
-          <ul className="services mt-8 text-[10px] tracking-[0.3em] text-taupe/70 uppercase sm:text-[11px]">
+            larger pages. Both are the same list — see .services in
+            globals.css. */}
+        <Reveal delay={3} className="cover-services mt-12 sm:mt-14">
+          <Label as="h2" size="sm" className="mb-4">
+            Services
+          </Label>
+          <ul className="services text-[10px] tracking-[0.3em] text-taupe/70 uppercase sm:text-[11px]">
             {site.services.map((service) => (
               <li key={service}>{service}</li>
             ))}
@@ -125,7 +118,7 @@ function AboutPage() {
   return (
     <div className="about-page book-page-content relative flex flex-col justify-center-safe px-8 sm:px-12">
       <CornerBrackets corners="tl-br" />
-      <RunningHead left={site.name} right="London · Lagos" />
+      <RunningHead />
       <GhostNumeral>02</GhostNumeral>
       <Folio className="page-folio">ii</Folio>
 
@@ -143,8 +136,8 @@ function AboutPage() {
           className="about-bio text-[14px] leading-[1.75] sm:text-[15px]"
         >
           <em className="text-paper not-italic">{site.name}</em> is a
-          residential and commercial design studio working across London and
-          Lagos. We design intentional spaces that tell meaningful stories
+          residential and commercial interior design studio. We design
+          intentional spaces that tell meaningful stories
           &mdash; rooted in purpose, shaped by context, and executed with quiet
           excellence.
         </Body>

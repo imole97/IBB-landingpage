@@ -43,7 +43,7 @@ export const site = {
   url: resolveOrigin(process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL),
   tagline: "Curious. Curated. Connected.",
   motto: "Every space has a story.",
-  edition: "Limited Edition · 2026",
+  edition: "Limited Edition",
   colophon: "IBB · 2026 · London · Lagos",
   services: [
     "Interior Design & Consultation",
@@ -58,9 +58,12 @@ export const site = {
   /** Prototype line 1461 — the studio bio on the back cover. */
   description:
     "Interiors By B. is a residential and commercial design studio working across London and Lagos. Curious. Curated. Connected. We design intentional spaces that tell meaningful stories — rooted in purpose, shaped by context, and executed with quiet excellence.",
-  /** Trimmed for meta description (~155 chars). */
+  /** What search results show: what the studio does and where (~155 chars). */
   metaDescription:
-    "A residential and commercial interior design studio working across London and Lagos. Intentional spaces that tell meaningful stories. Every space has a story.",
+    "Interior design studio in London & Lagos. Interior design & consultation, space planning, procurement and project management for homes and businesses.",
+  /** What a shared link shows: the voice of the cover rather than a list. */
+  shareDescription:
+    "Curious. Curated. Connected. Intentional spaces that tell meaningful stories. Join the list for our limited edition.",
 } as const;
 
 export const absoluteUrl = (path = "/") => new URL(path, site.url).toString();

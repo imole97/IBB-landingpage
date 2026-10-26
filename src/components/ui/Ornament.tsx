@@ -1,3 +1,4 @@
+import { Wordmark } from "@/components/ui/Wordmark";
 import { cn } from "@/lib/cn";
 
 /** Ports .cover-front-rule — the 80×1px taupe rule. */
@@ -60,12 +61,11 @@ export function Spine({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** A book's running head: a line of small caps across the top, ruled. */
-export function RunningHead({ left, right }: { left: string; right: string }) {
+/** A book's running head: the wordmark, small, across the top, ruled. */
+export function RunningHead() {
   return (
     <div aria-hidden className="running-head">
-      <span>{left}</span>
-      <span>{right}</span>
+      <Wordmark className="running-head-mark" sizes="120px" />
     </div>
   );
 }

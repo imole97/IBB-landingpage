@@ -429,13 +429,12 @@ body {
     position: absolute;
     top: clamp(1.5rem, 3.5cqh, 2.5rem);
     inset-inline: var(--margin-x);
-    justify-content: space-between;
+    align-items: flex-end;
     padding-bottom: 0.9rem;
     border-bottom: 1px solid rgb(184 168 147 / 0.18);
-    font-size: 10px;
-    letter-spacing: var(--tracking-spine);
-    text-transform: uppercase;
-    color: rgb(154 136 118 / 0.75);
+  }
+  .running-head-mark {
+    width: clamp(150px, 13cqw, 210px);
   }
   .ghost-numeral {
     display: block;
@@ -456,16 +455,21 @@ body {
     padding-top: calc(var(--margin-y) + 3rem);
   }
 
-  /* ─── Cover ─── */
+  /* ─── Cover ───
+     The logo is the cover: as wide as the left two-thirds of the page,
+     centred in its height, with the tagline set small beneath it. The
+     services sit at the foot on the right, above the lifted corner. */
   .cover-page {
     padding-bottom: calc(var(--margin-y) + 1.5rem);
   }
   .cover-page .page-fit {
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto 1fr auto auto 1fr;
     grid-template-areas:
       "ed ed ed ed ed ed . . . . . ."
-      "tg tg tg tg tg tg tg . mo mo mo mo"
-      "mk mk mk mk mk mk . . sv sv sv sv";
+      ".  .  .  .  .  .  . . . . . ."
+      "mk mk mk mk mk mk mk mk . . . ."
+      "tg tg tg tg tg tg tg tg . . . ."
+      ".  .  .  .  .  .  . . sv sv sv sv";
   }
   .cover-edition {
     grid-area: ed;
@@ -474,60 +478,30 @@ body {
     margin: 0;
   }
 
-  /* The tagline, large and stepped in a word at a time. */
-  .cover-tagline {
-    grid-area: tg;
-    align-self: center;
-  }
-  .cover-tagline > [aria-hidden] {
-    margin: 0 0 clamp(1.5rem, 4cqh, 2.75rem);
-  }
-  .cover-tagline p {
-    margin: 0;
-    font-size: clamp(2.75rem, 6.2cqw, 7rem);
-    font-weight: 300;
-    line-height: 1.06;
-    letter-spacing: -0.015em;
-  }
-  .cover-tagline .tagline-word {
-    display: block;
-  }
-  .cover-tagline .tagline-word:nth-child(2) {
-    padding-left: 1em;
-    color: var(--color-taupe-light);
-  }
-  .cover-tagline .tagline-word:nth-child(3) {
-    padding-left: 2em;
-  }
-
-  .cover-motto {
-    grid-area: mo;
-    align-self: end;
-    padding-bottom: clamp(0.5rem, 2cqh, 1.5rem);
-  }
-  .cover-motto::before {
-    content: "";
-    display: block;
-    width: 2.5rem;
-    height: 1px;
-    margin-bottom: 1.25rem;
-    background: var(--color-taupe);
-  }
-  .cover-motto p {
-    font-size: clamp(1.1rem, 1.55cqw, 1.6rem);
-    line-height: 1.5;
-  }
-
   .cover-mark {
     grid-area: mk;
-    align-self: end;
-    width: min(100%, 36cqw);
+    width: min(100%, 60cqw);
     margin: 0;
+  }
+
+  .cover-tagline {
+    grid-area: tg;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: clamp(1.25rem, 3.5cqh, 2.25rem);
+  }
+  .cover-tagline > [aria-hidden] {
+    margin: 0;
+  }
+  .cover-tagline p {
+    font-size: clamp(14px, 1.25cqw, 18px);
   }
 
   .cover-services {
     grid-area: sv;
     align-self: end;
+    margin: 0;
   }
   .cover-page .services {
     margin: 0;
@@ -624,7 +598,7 @@ body {
       "label label label label label label label . .      .      .      ."
       "rule  rule  rule  rule  rule  rule  rule  . .      .      .      ."
       "title title title title title title title . detail detail detail detail"
-      "mark  mark  mark  mark  .     .     .     . detail detail detail detail";
+      ".     .     .     .     .     .     .     . detail detail detail detail";
   }
   .thanks-page .thanks-label {
     grid-area: label;
@@ -643,11 +617,9 @@ body {
     line-height: 1;
     letter-spacing: -0.02em;
   }
+  /* The running head carries the wordmark here; once is enough. */
   .thanks-page .thanks-mark {
-    grid-area: mark;
-    align-self: end;
-    width: min(100%, 18cqw);
-    margin: 0;
+    display: none;
   }
   .thanks-page .thanks-detail {
     grid-area: detail;
@@ -672,31 +644,21 @@ body {
 
   /* ─── Cover ─── */
   .cover-page .page-fit {
-    grid-template-rows: auto 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto auto 1fr auto;
     grid-template-areas:
-      "ed ed ed ed ed ed ed ed . . . ."
-      "tg tg tg tg tg tg tg tg tg tg tg tg"
-      "mo mo mo mo mo mo mo mo mo mo mo mo"
-      "mk mk mk mk mk . sv sv sv sv sv sv";
-  }
-  .cover-tagline p {
-    font-size: clamp(3rem, 10cqw, 7rem);
-  }
-  .cover-tagline .tagline-word:nth-child(2) {
-    padding-left: 0.8em;
-  }
-  .cover-tagline .tagline-word:nth-child(3) {
-    padding-left: 1.6em;
-  }
-  .cover-motto {
-    padding-bottom: 0;
-  }
-  .cover-motto p {
-    font-size: clamp(1.15rem, 2.6cqw, 1.75rem);
+      "ed"
+      "."
+      "mk"
+      "tg"
+      "."
+      "sv";
   }
   .cover-mark {
     width: 100%;
-    padding-bottom: 0.5rem;
+  }
+  .cover-services {
+    width: min(100%, 30rem);
   }
 
   /* ─── About ─── */
@@ -723,18 +685,14 @@ body {
   /* ─── Thank you ─── */
   .thanks-page .page-fit {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-rows: auto auto 1fr auto;
     grid-template-areas:
       "label"
       "rule"
       "title"
-      "detail"
-      "mark";
+      "detail";
   }
   .thanks-page .thanks-title {
     font-size: clamp(3.5rem, 12cqw, 8rem);
-  }
-  .thanks-page .thanks-mark {
-    width: min(100%, 34cqw);
   }
 }

@@ -20,7 +20,7 @@ export function ThanksPage() {
   return (
     <div className="thanks-page book-page-content relative flex flex-col items-center justify-center-safe px-8 text-center sm:px-12">
       <CornerBrackets corners="tr-bl" />
-      <RunningHead left={site.name} right="London · Lagos" />
+      <RunningHead />
       <GhostNumeral>03</GhostNumeral>
       <Folio className="page-folio">iii</Folio>
 

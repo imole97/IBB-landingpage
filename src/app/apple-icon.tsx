@@ -1,9 +1,10 @@
 import { ImageResponse } from "next/og";
+import { ogFonts } from "@/lib/ogFonts";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-export default function AppleIcon() {
+export default async function AppleIcon() {
   return new ImageResponse(
     (
       <div
@@ -17,12 +18,13 @@ export default function AppleIcon() {
           background:
             "linear-gradient(135deg, #1A1611 0%, #2C2419 50%, #1F1A14 100%)",
           color: "#C2B3A1",
+          fontFamily: "Comfortaa",
         }}
       >
-        <div style={{ fontSize: 92, fontWeight: 600, letterSpacing: -2 }}>B.</div>
-        <div style={{ width: 44, height: 2, background: "#9A8876", marginTop: 12 }} />
+        <div style={{ fontSize: 92, fontWeight: 500, letterSpacing: -3 }}>B.</div>
+        <div style={{ width: 44, height: 2, background: "#9A8876", marginTop: 10 }} />
       </div>
     ),
-    size,
+    { ...size, fonts: await ogFonts() },
   );
 }
