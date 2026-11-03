@@ -104,20 +104,34 @@ function flipBack(book: PageFlipInstance, target: number): boolean {
   const { pageWidth, height } = controller.getBoundsRect();
   const render = book.getRender();
 
-  // The corner comes back from the far side of the spine to its place.
-  // Not along the bottom edge — there the fold stands straight up and the
-  // page slides in as a flat strip — but arcing up and over, so the page
-  // is curled from its first frame, and settling flat as it lands. Points
-  // are spaced by the ease, since page-flip plays them at an even rate.
-  const arc = height * 0.16;
-  const at = (s: number) => ({
-    x: -pageWidth + (2 * pageWidth - 0.5) * s,
-    // The square root lifts the corner early, so the curl leans from the
-    // start rather than entering upright.
-    y: height - 0.5 * s - arc * Math.sqrt(Math.sin(Math.PI * s)),
+  // The corner comes back along exactly the path a forward turn takes,
+  // reversed: from the far side of the spine to just short of its place,
+  // lifted a little, then settling flat. (A higher, arcing path looks
+  // tempting, but once the page's top corner crosses the spine page-flip
+  // snaps the page to a different shape for a few frames.)
+  //
+  // Eased out: quick at first, past the moment the page enters upright at
+  // the spine, then slowing to land gently. Points are spaced by the ease,
+  // since page-flip plays them at an even rate.
+  const lift = height / 10;
+  const from = { x: -pageWidth, y: height };
+  const lifted = { x: pageWidth - lift, y: height - lift };
+  const flat = { x: pageWidth - 0.5, y: height - 0.5 };
+  const toLifted = Math.hypot(lifted.x - from.x, lifted.y - from.y);
+  const toFlat = Math.hypot(flat.x - lifted.x, flat.y - lifted.y);
+  const along = (a: Point, b: Point, k: number) => ({
+    x: a.x + (b.x - a.x) * k,
+    y: a.y + (b.y - a.y) * k,
   });
+  const at = (s: number) => {
+    const d = s * (toLifted + toFlat);
+    return d <= toLifted
+      ? along(from, lifted, d / toLifted)
+      : along(lifted, flat, (d - toLifted) / toFlat);
+  };
+  const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
   const steps = Math.round((FLIP_MS / 1000) * 120);
-  const path = Array.from({ length: steps + 1 }, (_, k) => at(easeInOut(k / steps)));
+  const path = Array.from({ length: steps + 1 }, (_, k) => at(easeOut(k / steps)));
 
   controller.setState("flipping");
   controller.getCalculation()?.calc(path[0]);
