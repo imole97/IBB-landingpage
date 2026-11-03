@@ -19,9 +19,8 @@ export default async function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background:
-            "linear-gradient(135deg, #1A1611 0%, #2C2419 50%, #1F1A14 100%)",
-          color: "#C2B3A1",
+          background: "#F4F0E8",
+          color: "#1C1B19",
           fontFamily: "Comfortaa",
           fontSize: 58,
           fontWeight: 500,

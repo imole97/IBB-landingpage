@@ -4,10 +4,10 @@ import { useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * The smallest the content may be scaled. Below this it's too small to read
- * comfortably; the page scrolls instead, which Book already handles.
+ * The smallest the content may be scaled by default. Pages never scroll, so
+ * this is a floor for legibility rather than a fallback point.
  */
-const MIN_SCALE = 0.7;
+const MIN_SCALE = 0.6;
 
 /**
  * Keeps a page's content inside the page, on any screen.
@@ -26,9 +26,12 @@ const MIN_SCALE = 0.7;
 export function PageFit({
   children,
   className,
+  min = MIN_SCALE,
 }: {
   children: React.ReactNode;
   className?: string;
+  /** The smallest scale this content may be shrunk to. */
+  min?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,10 +60,10 @@ export function PageFit({
         // converge in a couple of steps.
         let scale = 1;
         for (let i = 0; i < 4 && height > room + 0.5; i++) {
-          scale = Math.max(MIN_SCALE, scale * (room / height));
+          scale = Math.max(min, scale * (room / height));
           el.style.zoom = String(scale);
           height = el.getBoundingClientRect().height;
-          if (scale === MIN_SCALE) break;
+          if (scale === min) break;
         }
       });
     };
@@ -72,7 +75,7 @@ export function PageFit({
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, []);
+  }, [min]);
 
   return (
     <div ref={ref} className={cn("page-fit", className)}>

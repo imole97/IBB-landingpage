@@ -43,15 +43,7 @@ export const site = {
   url: resolveOrigin(process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL),
   tagline: "Curious. Curated. Connected.",
   motto: "Every space has a story.",
-  edition: "Limited Edition",
-  colophon: "IBB · 2026 · London · Lagos",
-  services: [
-    "Interior Design & Consultation",
-    "Space Planning",
-    "Procurement",
-    "Project Management",
-  ],
-  locations: "London · Lagos · 2026",
+  colophon: "IBB · Interior Design Studio",
   email: "info@interiorsbyb.net",
   instagram: "https://www.instagram.com/interiors_by_bee/",
   instagramHandle: "@interiors_by_bee",
@@ -63,7 +55,7 @@ export const site = {
     "Interior design studio in London & Lagos. Interior design & consultation, space planning, procurement and project management for homes and businesses.",
   /** What a shared link shows: the voice of the cover rather than a list. */
   shareDescription:
-    "Curious. Curated. Connected. Intentional spaces that tell meaningful stories. Join the list for our limited edition.",
+    "Curious. Curated. Connected. Intentional spaces that tell meaningful stories — for homes and businesses.",
 } as const;
 
 export const absoluteUrl = (path = "/") => new URL(path, site.url).toString();

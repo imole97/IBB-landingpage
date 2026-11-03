@@ -29,7 +29,7 @@ export function Stage({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="min-h-dvh bg-ink" data-cover={cover ? "" : undefined}>
+    <div className="min-h-dvh bg-page" data-cover={cover ? "" : undefined}>
       {children}
     </div>
   );

@@ -59,7 +59,7 @@ export function Cursor() {
     <div
       ref={dot}
       aria-hidden
-      className="pointer-events-none fixed top-0 left-0 z-[9999] size-2.5 rounded-full bg-paper opacity-0 mix-blend-difference transition-[width,height,opacity] duration-200 data-[expand]:size-10"
+      className="pointer-events-none fixed top-0 left-0 z-[9999] size-2.5 rounded-full bg-page opacity-0 mix-blend-difference transition-[width,height,opacity] duration-200 data-[expand]:size-10"
     />
   );
 }

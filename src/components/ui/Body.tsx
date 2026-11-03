@@ -23,7 +23,7 @@ export function Body({
         size === "md" && "text-[16px] leading-[1.85] sm:text-[17px]",
         size === "lg" && "text-[19px] font-light leading-[1.7] sm:text-[21px]",
         tone === "ink" && "text-ink-soft",
-        tone === "onDark" && "text-paper/65",
+        tone === "onDark" && "text-ink-soft",
         className,
       )}
     >

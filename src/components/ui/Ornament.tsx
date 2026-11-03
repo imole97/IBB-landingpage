@@ -13,7 +13,7 @@ export function Rule({
     <div
       aria-hidden
       className={cn(
-        "h-px w-20 bg-taupe",
+        "h-px w-20 bg-accent",
         align === "center" && "mx-auto",
         className,
       )}
@@ -25,8 +25,8 @@ export function Rule({
 export function Ornament({ className }: { className?: string }) {
   return (
     <div aria-hidden className={cn("flex items-center gap-3.5", className)}>
-      <span className="size-1.5 rotate-45 bg-taupe" />
-      <span className="h-px flex-1 bg-taupe/30" />
+      <span className="size-1.5 rotate-45 bg-accent" />
+      <span className="h-px flex-1 bg-accent/30" />
     </div>
   );
 }
@@ -61,21 +61,16 @@ export function Spine({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** A book's running head: the wordmark, small, across the top, ruled. */
-export function RunningHead() {
+/**
+ * A book's running head: the wordmark, small, across the top, ruled, with
+ * the chapter's title set against the far margin.
+ */
+export function RunningHead({ title }: { title?: string }) {
   return (
     <div aria-hidden className="running-head">
       <Wordmark className="running-head-mark" sizes="120px" />
+      {title && <span className="running-head-title">{title}</span>}
     </div>
-  );
-}
-
-/** The chapter numeral, huge and barely there, behind the page. */
-export function GhostNumeral({ children }: { children: React.ReactNode }) {
-  return (
-    <span aria-hidden className="ghost-numeral">
-      {children}
-    </span>
   );
 }
 
@@ -97,22 +92,22 @@ export function CornerBrackets({
         <>
           <span
             aria-hidden
-            className={cn(box, "top-6 right-6 border-t border-r border-taupe lg:top-8 lg:right-8")}
+            className={cn(box, "top-6 right-6 border-t border-r border-accent lg:top-8 lg:right-8")}
           />
           <span
             aria-hidden
-            className={cn(box, "bottom-6 left-6 border-b border-l border-taupe lg:bottom-8 lg:left-8")}
+            className={cn(box, "bottom-6 left-6 border-b border-l border-accent lg:bottom-8 lg:left-8")}
           />
         </>
       ) : (
         <>
           <span
             aria-hidden
-            className={cn(box, "top-6 left-6 border-t border-l border-taupe lg:top-8 lg:left-8")}
+            className={cn(box, "top-6 left-6 border-t border-l border-accent lg:top-8 lg:left-8")}
           />
           <span
             aria-hidden
-            className={cn(box, "right-6 bottom-6 border-r border-b border-taupe lg:right-8 lg:bottom-8")}
+            className={cn(box, "right-6 bottom-6 border-r border-b border-accent lg:right-8 lg:bottom-8")}
           />
         </>
       )}

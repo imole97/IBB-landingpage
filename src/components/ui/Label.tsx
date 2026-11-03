@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 /**
  * Eyebrow / section label.
  * Ports .chapter-label, .form-label and .cover-front-edition — the same
- * rule at three sizes. Uppercase, 600 weight, heavy tracking, taupe.
+ * rule at three sizes. Uppercase, 600 weight, heavy tracking, in the label colour.
  */
 export function Label({
   children,
@@ -22,7 +22,7 @@ export function Label({
     <Tag
       htmlFor={htmlFor}
       className={cn(
-        "font-semibold uppercase text-taupe",
+        "font-semibold uppercase text-label",
         size === "sm" && "text-[12px] tracking-label",
         size === "md" && "text-[13px] tracking-label",
         size === "lg" && "text-[13px] tracking-label-wide",

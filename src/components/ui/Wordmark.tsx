@@ -3,9 +3,8 @@ import { cn } from "@/lib/cn";
 import { site } from "@/lib/site";
 
 /**
- * The logo ships as dark artwork on transparency (1179×248). The
- * prototype shows it on ink via invert(1) brightness(2.6); that lives in
- * the `wordmark-on-ink` utility so it is never re-typed per usage.
+ * The logo: black artwork on transparency (1179×248), shown as it is on
+ * the bone paper.
  */
 export function Wordmark({
   className,
@@ -24,7 +23,7 @@ export function Wordmark({
       height={248}
       priority={priority}
       sizes={sizes}
-      className={cn("wordmark-on-ink h-auto w-full", className)}
+      className={cn("h-auto w-full", className)}
     />
   );
 }

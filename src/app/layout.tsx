@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Comfortaa } from "next/font/google";
+import { Comfortaa, Dawning_of_a_New_Day } from "next/font/google";
+import { BookShell } from "@/components/book/BookShell";
+import { Cursor } from "@/components/Cursor";
+import { Stage } from "@/components/Stage";
+import { services } from "@/lib/content";
 import { site, absoluteUrl } from "@/lib/site";
 import "./globals.css";
 
@@ -16,6 +20,17 @@ const comfortaa = Comfortaa({
 // person sees when the link is shared leaves them out.
 const title = `${site.name} — Interior Design Studio | London & Lagos`;
 const shareTitle = `${site.name} — Interior Design Studio`;
+
+// The page titles — "About Us", "Our Services" — in a thin, upright hand
+// close to the wordmark's. A stand-in until the client supplies lettering.
+const script = Dawning_of_a_New_Day({
+  variable: "--font-script",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  // next/font has no metrics for this face to size a fallback with.
+  adjustFontFallback: false,
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -81,8 +96,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1A1714",
-  colorScheme: "dark",
+  themeColor: "#F4F0E8",
+  colorScheme: "light",
 };
 
 /**
@@ -131,12 +146,12 @@ const jsonLd = {
         "Interior design",
         "Residential interior design",
         "Commercial interior design",
-        ...site.services,
+        ...services.map((service) => service.name),
       ],
       hasOfferCatalog: {
         "@type": "OfferCatalog",
         name: "Interior design services",
-        itemListElement: site.services.map((service) => ({
+        itemListElement: services.map(({ name: service }) => ({
           "@type": "Offer",
           itemOffered: {
             "@type": "Service",
@@ -180,11 +195,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en-GB"
-      className={`${comfortaa.variable} antialiased`}
-      // Inline so the ink is painted the moment the HTML parses. The
-      // stylesheet is render-blocking, and its arrival is the difference
-      // between a dark first frame and a white flash on a dark site.
-      style={{ backgroundColor: "#1A1714" }}
+      className={`${comfortaa.variable} ${script.variable} antialiased`}
+      // Inline so the paper is painted the moment the HTML parses, rather
+      // than a flash of pure white before the stylesheet arrives.
+      style={{ backgroundColor: "#F4F0E8" }}
     >
       <head>
         <script
@@ -192,15 +206,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           // Static object under our control — no user input reaches it.
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        {/* Without JS page-flip never mounts, so there's nothing to turn.
-            Lay the cover and the About page out as an ordinary scrolling
-            document instead — every word readable — and keep the
-            thank-you out of it, since it can't be reached. */}
+        {/* Without JS nothing turns: links are ordinary links and each page
+            scrolls inside itself as usual. Only the cover's fade-in needs
+            undoing, since it waits on a script to start. */}
         <noscript>
-          <style>{`.rev,.book-hint{opacity:1!important;transform:none!important}.book-scene{display:block!important;overflow:visible!important;touch-action:auto!important}.book-frame{width:auto!important;height:auto!important;aspect-ratio:auto!important}.book-frame::before,.book-frame::after,.book-hint{display:none!important}.book-frame .book-page{position:relative!important;display:block!important;min-height:100dvh;container-type:normal!important}.book-frame .book-page[data-page="2"]{display:none!important}.book-page-content{height:auto!important;min-height:100dvh}`}</style>
+          <style>{`.rev,.book-hint{opacity:1!important;transform:none!important}`}</style>
         </noscript>
       </head>
-      <body className="min-h-dvh bg-ink text-paper">{children}</body>
+      <body className="min-h-dvh bg-page text-ink">
+        <Cursor />
+        <Stage>
+          <BookShell>{children}</BookShell>
+        </Stage>
+      </body>
     </html>
   );
 }

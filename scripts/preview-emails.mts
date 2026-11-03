@@ -20,15 +20,18 @@ await mkdir(OUT, { recursive: true });
  */
 const localise = (html: string) =>
   html.replace(
-    /src="https?:\/\/[^"]*\/logo-light\.png"/g,
-    `src="file://${process.cwd()}/public/logo-light.png"`,
+    /src="https?:\/\/[^"]*\/logo\.png"/g,
+    `src="file://${process.cwd()}/public/logo.png"`,
   );
 
 const files = {
-  "confirmation.html": confirmationEmail(),
+  "confirmation.html": confirmationEmail({ name: "Adaeze" }),
   "notification.html": notificationEmail({
+    name: "Adaeze Okonkwo",
     email: "adaeze.okonkwo@gmail.com",
-    company: "Okonkwo & Daughters",
+    message:
+      "We've just bought a Victorian terrace and would love help with the ground floor.\nKitchen, living room and a small study.",
+    heard: "A friend's home — she worked with you last year.",
     ip: "102.89.34.17",
   }),
 };

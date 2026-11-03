@@ -2,24 +2,22 @@
 
 /* ══════════════════════════════════════════════════════════════
    INTERIORS BY B. — DESIGN SYSTEM
-   Tokens extracted verbatim from design/Interior By B.html.
-   Every page in this app consumes these; nothing defines its own
-   colour, gradient, or tracking.
+   Every page in this app consumes these tokens; nothing defines its own
+   colour or tracking.
    ══════════════════════════════════════════════════════════════ */
 
 @theme {
-  /* ─── Taupe palette (prototype :root, lines 12–25) ─── */
-  --color-paper: #f4eee5; /* warm cream paper */
-  --color-paper-deep: #e8dfd0;
-  --color-cream: #ede5d8;
-  --color-ink: #1a1714; /* deep ink */
-  --color-ink-mid: #2e2823;
-  --color-ink-soft: #4a413a;
-  --color-taupe: #9a8876; /* primary accent */
-  --color-taupe-deep: #6e6052;
-  --color-taupe-light: #c2b3a1;
-  --color-taupe-rule: #b8a893;
-  --color-white-soft: #faf7f2;
+  /* ─── Bone & Ink ───
+     Warm off-white paper, near-black ink, taupe kept for the quiet
+     details. Every colour on the site comes from these; a re-colour is an
+     edit here and nowhere else. */
+  --color-page: #f4f0e8; /* bone — the paper */
+  --color-page-deep: #ece6db; /* the back of a page, image plates */
+  --color-ink: #1c1b19; /* headings, text, the logo */
+  --color-ink-soft: #55504a; /* running copy — 7:1 on bone */
+  --color-label: #6e6052; /* small capitals, folios — ≥4.5:1 on bone */
+  --color-accent: #9a8876; /* taupe: rules, brackets, dashes — never small text */
+  --color-rule: rgb(28 27 25 / 0.14); /* hairlines */
 
   /* ─── Type ─── */
   --font-display: var(--font-comfortaa), ui-rounded, system-ui, sans-serif;
@@ -34,26 +32,6 @@
   --ease-book: cubic-bezier(0.645, 0.045, 0.355, 1);
 }
 
-/* ─── Cover surfaces: the covers are gradients, never flats ─── */
-@utility surface-cover-front {
-  background: linear-gradient(135deg, #1a1611 0%, #2c2419 50%, #1f1a14 100%);
-}
-@utility surface-cover-back {
-  background: linear-gradient(135deg, #18140f 0%, #221c16 50%, #1a1611 100%);
-}
-@utility surface-spine {
-  background: linear-gradient(to right, #0f0c09 0%, #1a1611 50%, #0f0c09 100%);
-  box-shadow:
-    inset 4px 0 8px rgba(0, 0, 0, 0.5),
-    inset -4px 0 8px rgba(0, 0, 0, 0.5);
-}
-
-/* The wordmark ships as dark artwork on transparency; the prototype
-   shows it on ink with this filter. */
-@utility wordmark-on-ink {
-  filter: invert(1) brightness(2.6);
-}
-
 html {
   scroll-behavior: smooth;
   /* A sideways trackpad swipe turns the page back. Without this, the
@@ -62,21 +40,21 @@ html {
 }
 
 body {
-  background: var(--color-ink);
-  color: var(--color-paper);
+  background: var(--color-page);
+  color: var(--color-ink);
   font-family: var(--font-display);
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: var(--color-taupe);
-  color: var(--color-ink);
+  background: var(--color-accent);
+  color: var(--color-page);
 }
 
 /* Visible, on-brand focus ring — the prototype had none. */
 :focus-visible {
-  outline: 1px solid var(--color-taupe);
+  outline: 1px solid var(--color-accent);
   outline-offset: 4px;
 }
 
@@ -100,7 +78,7 @@ body {
   overscroll-behavior: none;
   touch-action: pinch-zoom;
   background:
-    radial-gradient(ellipse at 50% 42%, #231d17 0%, var(--color-ink) 70%);
+    var(--color-page);
 }
 
 /* On every screen the page is the screen: a full-bleed page you're
@@ -112,13 +90,31 @@ body {
   height: 100dvh;
 }
 
-/* page-flip's root. It injects its own stylesheet; this only stops its
-   pan-y from scrolling the page. */
+/* The page being read. Each route renders into it. */
+.book-live {
+  position: absolute;
+  inset: 0;
+  /* Its own stack: the paper's grain and binding shadow (z-index 4 and 5)
+     stay on this page, rather than rising over the turn and the hold
+     above it — where they'd darken the turning paper and double up on
+     the copies of the page. */
+  isolation: isolate;
+}
+
+/* page-flip's root, laid over the live page. Between turns it's invisible
+   and lets every click through; during a turn it holds the leaf being
+   turned and the page beneath. page-flip injects its own stylesheet; this
+   only stops its pan-y from scrolling the page. */
 .book-root {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  visibility: hidden;
+  pointer-events: none;
+}
+.book-frame[data-turning] .book-root {
+  visibility: visible;
+  pointer-events: auto;
 }
 .book-root.stf__parent {
   touch-action: pinch-zoom;
@@ -130,10 +126,20 @@ body {
 .book-page {
   container-type: size;
   overflow: hidden;
-  background: linear-gradient(135deg, #1a1611 0%, #2c2419 50%, #1f1a14 100%);
+  background: linear-gradient(135deg, #f6f2eb 0%, var(--color-page) 50%, #f1ece3 100%);
 }
-.book-page[data-page="1"] {
-  background: linear-gradient(135deg, #18140f 0%, #221c16 50%, #1a1611 100%);
+
+/* Paper has a grain. Barely there — felt more than seen — and fixed to the
+   sheet, so it doesn't slide past as the page's content scrolls. */
+.book-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* The binding. Light pools away from the spine, so the left edge of
@@ -148,8 +154,8 @@ body {
   pointer-events: none;
   background: linear-gradient(
     to right,
-    rgb(0 0 0 / 0.45) 0%,
-    rgb(0 0 0 / 0.12) 45%,
+    rgb(0 0 0 / 0.08) 0%,
+    rgb(0 0 0 / 0.02) 45%,
     transparent 100%
   );
 }
@@ -157,21 +163,51 @@ body {
 /* The underside of a turning page. page-flip draws it from a clone of the
    front; paper's back is blank, so the clone keeps only its surface. */
 .book-page--back {
-  background: linear-gradient(135deg, #221c16 0%, #2a231b 55%, #1f1a14 100%);
+  background: linear-gradient(135deg, #eee8dd 0%, var(--color-page-deep) 55%, #e8e2d6 100%);
 }
 .book-page--back > * {
   visibility: hidden;
 }
 
-/* Before page-flip mounts, the source pages are in normal flow. Show
-   only the cover, sized to the frame, so there's no flash of stacked
-   pages while the script loads. */
-.book-frame:not([data-ready]) .book-page {
+/* The book's thickness. Pages already read stack under the left edge,
+   pages still to come under the right — a few hairlines each, thinning and
+   thickening as the reader moves through the book. */
+.book-edges {
   position: absolute;
-  inset: 0;
+  inset-block: 0;
+  /* Over the turn as well as the page, so the edges don't vanish while a
+     page is turning and pop back when it lands. */
+  z-index: 5;
+  width: calc(var(--pages, 0) * 3px);
+  pointer-events: none;
+  transition: width 0.8s var(--ease-book);
 }
-.book-frame:not([data-ready]) .book-page:not([data-page="0"]) {
-  display: none;
+.book-edges--left {
+  left: 0;
+  background: repeating-linear-gradient(
+    to right,
+    var(--color-page-deep) 0 2px,
+    rgb(28 27 25 / 0.16) 2px 3px
+  );
+}
+.book-edges--right {
+  right: 0;
+  background: repeating-linear-gradient(
+    to left,
+    var(--color-page-deep) 0 2px,
+    rgb(28 27 25 / 0.2) 2px 3px
+  );
+  box-shadow: -6px 0 14px rgb(0 0 0 / 0.06);
+}
+/* No pages left to come: no edge, and no shadow where it was. */
+.book-edges--left,
+.book-edges--right {
+  opacity: min(var(--pages, 0), 1);
+}
+@media (width < 40rem) {
+  .book-edges {
+    display: none;
+  }
 }
 
 /* The binding's shadow scales with the page: slim on a phone, broad
@@ -187,16 +223,77 @@ body {
   }
 }
 
-/* Short screens: page 2 carries the bio, the form and the links, so it
-   tightens up rather than overflowing. If it still can't fit, the page
-   scrolls — and Book only turns once that scroll has hit its end. */
+
+/* A page is exactly the screen. Nothing on it scrolls: everything is
+   sized to the page's height, and scrolling turns the page instead — see
+   BookShell. */
 .book-page-content {
   height: 100%;
-  overflow-y: auto;
-  scrollbar-width: none;
+  overflow: hidden;
 }
-.book-page-content::-webkit-scrollbar {
+
+/* The photograph of the page being left, laid over it the instant a turn
+   begins so the route can change underneath unseen. */
+.book-hold {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
   display: none;
+}
+.book-frame[data-holding] .book-hold {
+  display: block;
+}
+.book-hold > .book-page {
+  position: absolute;
+  inset: 0;
+  /* Each sheet is its own stack, so nothing on a sheet beneath can show
+     through the one laid over it. */
+  isolation: isolate;
+}
+
+/* The turn on a tall page (see fold() in BookShell). The flap is the
+   back of the page, folded over; it and its shading are placed in
+   pixels from script, from the top-left corner. */
+.book-fold-flap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  transform-origin: 0 0;
+  will-change: transform, clip-path;
+  background: linear-gradient(135deg, #eee8dd 0%, var(--color-page-deep) 55%, #e8e2d6 100%);
+}
+/* Light across the folded paper: a crease of shadow at the fold, a soft
+   highlight where it rounds over, darkening again toward its edge. */
+.book-fold-shade,
+.book-fold-cast {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.book-fold-shade {
+  background: linear-gradient(
+    to right,
+    rgb(28 27 25 / 0.2) 0,
+    rgb(255 255 255 / 0.25) 22px,
+    rgb(255 255 255 / 0) 90px,
+    rgb(28 27 25 / 0.06) 40%
+  );
+}
+/* The shadow on the page beneath, deepest at the fold. Scaled with the
+   page so it's a slim shadow on a phone and broader on a tablet. */
+.book-fold-cast {
+  background: linear-gradient(
+    to right,
+    rgb(28 27 25 / 0.28) 0,
+    rgb(28 27 25 / 0.1) 2.5%,
+    transparent 7%
+  );
+}
+.book-hold > .book-fold-cast {
+  z-index: 0;
 }
 
 /* The "Open" hint on the cover fades in once, after the cover itself. */
@@ -212,9 +309,18 @@ body {
   }
 }
 
+/* page-flip writes its minWidth / minHeight settings onto the root as
+   inline styles. BookShell sets an unreachable minWidth to force a single
+   page, so those inline minimums must never actually apply. */
+.book-root.stf__parent {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  touch-action: pinch-zoom;
+}
+
 /* ══════════════════════════════════════════════════════════════
    REVEAL — prototype .rev / .rev-d1…d5 (lines 575–581)
-   Only the cover uses it now: its content settles in on arrival.
+   Only the cover uses it: its content settles in on arrival.
    Motion is opt-in; without it, content is simply visible.
    ══════════════════════════════════════════════════════════════ */
 
@@ -248,157 +354,434 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   FITTING THE PAGE
-   Every page has to hold all of its content, on any screen. Spacing is
-   proportioned to the page's height, so a shorter page is a tighter
-   page; <PageFit> scales the content down only if that still isn't
-   enough. Everything keys off the page, not the viewport, because the
-   page is what the content has to fit inside.
-   ══════════════════════════════════════════════════════════════ */
-
-.cover-page,
-.thanks-page {
-  padding-block: clamp(1.25rem, 7cqh, 3.5rem);
-}
-/* Room at the foot of the cover for the "Open" hint. */
-.cover-page {
-  padding-bottom: clamp(3.5rem, 10cqh, 5.25rem);
-}
-
-.about-page {
-  padding-block: clamp(1rem, 5.5cqh, 4rem);
-}
-.about-page .page-fit {
-  gap: clamp(0.6rem, 2.6cqh, 1.4rem);
-}
-
-/* Shorter pages: slightly smaller body copy and tighter form rows, so the
-   content fits by tightening rather than by being scaled down. */
-@container (max-height: 780px) {
-  .about-page p {
-    font-size: 13px;
-    line-height: 1.6;
-  }
-  .about-page form input {
-    padding-block: 0.4rem;
-  }
-  .about-page form .grid {
-    row-gap: 0.7rem;
-  }
-  .about-page form button[type="submit"] {
-    margin-top: 0.9rem;
-    padding-block: 0.8rem;
-  }
-  .about-page form [aria-live] {
-    margin-top: 0.5rem;
-  }
-}
-
-/* Very short pages (a small phone with its toolbars showing, a 768px
-   laptop): a second, tighter step, still before any scaling. */
-@container (max-height: 600px) {
-  .about-page .page-fit {
-    gap: 0.5rem;
-  }
-  .about-page p {
-    line-height: 1.5;
-  }
-  .about-page form label {
-    margin-bottom: 0.3rem;
-  }
-  /* The rule above "The limited edition". */
-  .about-page .about-form > div:first-child {
-    margin-bottom: 0.6rem;
-  }
-}
-
-/* Wide, short pages — a phone on its side. Stacking everything into ~350px
-   of height would scale it down to unreadable, so the bio sits beside the
-   form instead: two columns, each half the height. */
-@container (min-aspect-ratio: 3 / 2) and (max-height: 560px) {
-  .about-page .page-fit {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    grid-template-areas:
-      "heading form"
-      "bio     form"
-      "links   form"
-      "back    form";
-    align-content: center;
-    column-gap: clamp(1.5rem, 5cqw, 3rem);
-  }
-  .about-page .about-heading { grid-area: heading; }
-  .about-page .about-bio { grid-area: bio; }
-  .about-page .about-form { grid-area: form; align-self: center; }
-  .about-page .about-links { grid-area: links; }
-  .about-page .about-back { grid-area: back; }
-}
-
-/* page-flip writes its minWidth / minHeight settings onto the root as
-   inline styles. Book sets an unreachable minWidth to force single-page
-   layout, so those inline minimums must never actually apply. */
-.book-root.stf__parent {
-  min-width: 0 !important;
-  min-height: 0 !important;
-}
-
-/* ══════════════════════════════════════════════════════════════
-   THE SERVICES LIST
-   One list, two settings. On the book-sized page it's a line of
-   pipe-separated services with the last on a line of its own; on the
-   desktop page it becomes a numbered, ruled list (below).
-   ══════════════════════════════════════════════════════════════ */
-
-.services li {
-  display: inline;
-}
-.services li:not(:first-child):not(:last-child)::before {
-  content: " | ";
-}
-.services li:last-child {
-  display: block;
-}
-
-/* ══════════════════════════════════════════════════════════════
-   THE EDITORIAL PAGE — tablets and desktops
-   On a page this size, content is set like a printed page rather than
-   a centred column: anchored to generous margins on a 12-column grid,
-   with the furniture of a real book — a spine title, running heads,
-   folios, a chapter numeral, and a lifted corner to turn by. Keyed off
-   the page (like everything in FITTING THE PAGE), and only for pages
-   tall enough not to need the landscape-phone layout. Wide pages put
-   things side by side; upright pages (portrait tablets) stack them —
-   see the portrait block after this one.
+   BOOK FURNITURE
+   The running head, folios and spine title — set only
+   where the page is large enough to carry them (see THE PAGES).
    ══════════════════════════════════════════════════════════════ */
 
 .folio,
 .page-spine,
-.running-head,
-.ghost-numeral {
+.running-head {
   display: none;
 }
 
-@container (min-width: 600px) and (min-height: 561px) {
-  .cover-page,
-  .about-page,
-  .thanks-page {
-    --margin-x: clamp(4.5rem, 7.5cqw, 9rem);
-    --margin-y: clamp(2.5rem, 7cqh, 5.5rem);
-    --gutter: clamp(1rem, 2cqw, 2.25rem);
-    padding: var(--margin-y) var(--margin-x);
-    align-items: stretch;
-    text-align: left;
+.folio {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-label);
+}
+
+/* The way through the book: ← Cover, Our services →. */
+.turn-link,
+.book-hint-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-label);
+  transition: color 0.3s;
+}
+.turn-link:hover,
+.book-hint-link:hover {
+  color: var(--color-ink);
+}
+.turn-arrow {
+  display: inline-block;
+  transition: transform 0.3s;
+}
+.turn-link:hover .turn-arrow {
+  transform: translateX(3px);
+}
+.turn-link:hover .turn-arrow--back {
+  transform: translateX(-3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .turn-arrow {
+    transition: none;
   }
-  .page-fit {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    column-gap: var(--gutter);
-    min-height: 100%;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THE COVER
+   The wordmark, largest on the page, the tagline beneath it, and the
+   book's contents in a row — per the client's mockup.
+   ══════════════════════════════════════════════════════════════ */
+
+.cover-page {
+  padding-block: clamp(1.25rem, 7cqh, 3.5rem) clamp(3.5rem, 10cqh, 5.25rem);
+}
+
+.cover-contents {
+  margin-top: clamp(2.5rem, 8cqh, 4.5rem);
+}
+.cover-contents-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.1rem 1.5rem;
+  max-width: 26rem;
+  margin-inline: auto;
+}
+.cover-contents-link {
+  display: inline-flex;
+  gap: 0.6em;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--color-ink);
+  transition: color 0.3s;
+}
+.cover-contents-link:hover {
+  color: var(--color-label);
+}
+.cover-contents-dash {
+  color: var(--color-accent);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THE INNER PAGES
+   About, Services, Projects, Contact and the pages behind them share one
+   setting: margins, the script title, the content, the footer. Every
+   size is proportioned to the page's height (cqh) as well as its width,
+   so the whole page fits the screen; <PageFit> takes care of the rest.
+   ══════════════════════════════════════════════════════════════ */
+
+.inner-page {
+  --margin-x: clamp(1.25rem, 6.5cqw, 9rem);
+  --margin-y: clamp(1rem, 4.5cqh, 4rem);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--margin-y) var(--margin-x);
+}
+.inner-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+.inner-fit {
+  width: 100%;
+}
+
+.script-heading {
+  margin: 0 0 clamp(0.75rem, 3.5cqh, 2.75rem);
+  font-family: var(--font-script), cursive;
+  font-size: clamp(2.6rem, min(9cqw, 12cqh), 8.5rem);
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--color-ink);
+}
+.script-heading--long {
+  margin-bottom: 0;
+  font-size: clamp(2.4rem, min(7cqw, 10cqh), 6.5rem);
+}
+
+/* Where a photograph will go: the page's ink, a hairline frame inset like
+   a mount, and a quiet caption. */
+.image-plate {
+  width: 100%;
+  background: linear-gradient(155deg, #ede7dc 0%, #e9e3d7 55%, var(--color-page-deep) 100%);
+  box-shadow: 0 24px 50px -30px rgb(28 27 25 / 0.25);
+}
+.image-plate::before {
+  content: "";
+  position: absolute;
+  inset: clamp(6px, 1.4cqh, 12px);
+  border: 1px solid rgb(28 27 25 / 0.12);
+  pointer-events: none;
+}
+.image-plate-caption {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.45em;
+  text-transform: uppercase;
+  color: var(--color-label);
+}
+
+/* ─── The foot of every page ─── */
+.page-footer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 2.5rem;
+  margin-top: clamp(0.75rem, 3cqh, 2.25rem);
+  padding-top: clamp(0.75rem, 2.2cqh, 1.5rem);
+  border-top: 1px solid var(--color-rule);
+}
+.page-footer-turns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 2.5rem;
+}
+
+/* ─── Running copy, sized to the page ─── */
+.about-bio,
+.contact-lede,
+.coming-soon-summary {
+  max-width: 24em;
+  font-size: clamp(0.95rem, min(1.9cqw, 2.7cqh), 1.8rem);
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+}
+
+/* ─── About ─── */
+.about-layout {
+  display: grid;
+  gap: clamp(0.9rem, 3cqh, 2rem) clamp(2rem, 4cqw, 4.5rem);
+}
+.about-label {
+  margin-bottom: clamp(0.5rem, 2cqh, 1.25rem);
+}
+.about-image {
+  height: clamp(90px, 16cqh, 180px);
+}
+.philosophy {
+  margin-top: clamp(0.25rem, 1.5cqh, 1.5rem);
+}
+.philosophy-rule {
+  margin-bottom: clamp(0.6rem, 2cqh, 1.25rem);
+}
+.philosophy-label {
+  margin-bottom: clamp(0.75rem, 3cqh, 2rem);
+}
+.philosophy-grid {
+  display: grid;
+  gap: clamp(0.75rem, 2.4cqh, 1.75rem) clamp(2rem, 4cqw, 4.5rem);
+}
+.philosophy-title {
+  margin-bottom: clamp(0.25rem, 1cqh, 0.75rem);
+  font-size: clamp(1.05rem, min(1.7cqw, 2.6cqh), 1.6rem);
+  font-weight: 300;
+  color: var(--color-ink);
+}
+.philosophy-body {
+  max-width: 26rem;
+  font-size: clamp(12.5px, 1.8cqh, 15px);
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+/* ─── Services ─── */
+.service-list {
+  max-width: 58rem;
+  margin-bottom: clamp(1rem, 4cqh, 3rem);
+  border-top: 1px solid var(--color-rule);
+}
+.service-row {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding-block: clamp(0.7rem, 2.3cqh, 1.6rem);
+  border-bottom: 1px solid var(--color-rule);
+  font-size: clamp(11px, min(1.15cqw, 1.8cqh), 16px);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+  transition: color 0.3s;
+}
+.service-row:hover {
+  color: var(--color-ink);
+}
+.service-number {
+  color: var(--color-label);
+}
+.service-arrow {
+  color: var(--color-accent);
+  transition: transform 0.3s;
+}
+.service-row:hover .service-arrow {
+  transform: translateX(4px);
+}
+.services-image {
+  height: clamp(90px, 22cqh, 340px);
+}
+
+/* ─── Projects ───
+   On a phone each project is a row — the picture beside its name — so all
+   three fit; on larger pages they stand side by side as tall plates. */
+.project-grid {
+  display: grid;
+  gap: clamp(0.9rem, 2.6cqh, 2rem) clamp(1.5rem, 3cqw, 3rem);
+}
+.project-card {
+  display: grid;
+  grid-template-columns: minmax(0, 0.42fr) minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  column-gap: 1.25rem;
+  align-items: center;
+}
+.project-image {
+  grid-area: 1 / 1 / 4 / 2;
+  height: clamp(84px, 15cqh, 160px);
+  transition: transform 0.6s var(--ease-book);
+}
+.project-kind {
+  grid-area: 1 / 2;
+  align-self: end;
+}
+.project-title {
+  grid-area: 2 / 2;
+  display: block;
+  margin-top: 0.35rem;
+  font-size: clamp(1rem, min(1.6cqw, 2.4cqh), 1.45rem);
+  font-weight: 300;
+  color: var(--color-ink);
+}
+.project-open {
+  grid-area: 3 / 2;
+  align-self: start;
+  margin-top: 0.6rem;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-label);
+}
+.project-card:hover .project-image {
+  transform: translateY(-3px);
+}
+.project-open-arrow {
+  display: inline-block;
+  margin-left: 0.6rem;
+  transition: transform 0.3s;
+}
+.project-card:hover .project-open-arrow {
+  transform: translateX(4px);
+}
+
+/* ─── Contact ─── */
+.contact-layout {
+  display: grid;
+  gap: clamp(1rem, 3.5cqh, 2.5rem) clamp(2.5rem, 5cqw, 6rem);
+}
+.contact-intro-note {
+  margin-top: clamp(0.5rem, 2.5cqh, 2rem);
+}
+.contact-form {
+  position: relative;
+  max-width: 40rem;
+}
+.contact-fields {
+  row-gap: clamp(0.7rem, 2.6cqh, 1.75rem);
+}
+.contact-form input,
+.contact-form textarea {
+  padding-block: clamp(0.35rem, 1.2cqh, 0.75rem);
+}
+.contact-form label {
+  margin-bottom: clamp(0.3rem, 1cqh, 0.65rem);
+}
+.contact-form textarea {
+  height: clamp(4.25rem, 11cqh, 7.5rem);
+}
+.contact-submit {
+  margin-top: clamp(0.9rem, 3cqh, 2.25rem);
+  padding-block: clamp(0.8rem, 2.2cqh, 1.25rem);
+}
+.contact-thanks-title {
+  font-size: clamp(2.6rem, min(7cqw, 11cqh), 6rem);
+  font-weight: 300;
+  line-height: 1;
+  color: var(--color-ink);
+}
+
+/* Phones: the page is small, so the About page's picture waits for a
+   larger screen, the philosophy tightens, and the contact page leaves the
+   email to the footer — so every page still fits at a readable size. */
+@container (max-width: 599px) {
+  .about-image,
+  .contact-intro-note {
+    display: none;
   }
 
-  /* ─── Book furniture ─── */
+  /* A slim running head, so even a phone page reads as a page of the
+     book: the wordmark on the left, the chapter on the right. */
+  .running-head {
+    display: flex;
+    position: absolute;
+    top: clamp(0.9rem, 2.6cqh, 1.5rem);
+    inset-inline: var(--margin-x);
+    z-index: 1;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+  .running-head-mark {
+    width: clamp(92px, 28cqw, 120px);
+  }
+  .running-head-title {
+    font-size: 9px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--color-label);
+  }
+  .inner-page {
+    padding-top: calc(clamp(0.9rem, 2.6cqh, 1.5rem) + 2.6rem);
+  }
+  /* The folio rides at the end of the footer's way-through line. */
+  .page-footer {
+    position: relative;
+    padding-right: 2rem;
+  }
+  .page-footer .page-folio {
+    display: block;
+    position: absolute;
+    right: 0;
+    bottom: 0.1rem;
+  }
+
+  /* The cover's contents as a contents page: one column, centred. */
+  .cover-contents-list {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: clamp(0.8rem, 2.4cqh, 1.25rem);
+  }
+  .cover-contents-link {
+    font-size: 15px;
+  }
+  .philosophy-grid {
+    gap: 0.7rem;
+  }
+  .philosophy-body {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   THE PAGES ON LARGER SCREENS — tablets and desktops
+   Keyed off the page itself. Content sits side by side where there's
+   room, and the furniture of a real book appears: the running head, the
+   spine title, folios, the lifted corner.
+   ══════════════════════════════════════════════════════════════ */
+
+@container (min-width: 600px) and (min-height: 561px) {
+  .cover-page,
+  .inner-page {
+    --margin-x: clamp(4.5rem, 7.5cqw, 9rem);
+    --margin-y: clamp(1.5rem, 5cqh, 4.5rem);
+  }
+  .cover-page {
+    padding: var(--margin-y) var(--margin-x) calc(var(--margin-y) + 1.5rem);
+  }
+  .inner-page {
+    padding-top: calc(var(--margin-y) + clamp(2.75rem, 7cqh, 4rem));
+  }
+
   .page-spine {
     display: block;
     position: absolute;
@@ -410,133 +793,67 @@ body {
     letter-spacing: var(--tracking-spine);
     text-transform: uppercase;
     white-space: nowrap;
-    color: rgb(154 136 118 / 0.7);
+    color: var(--color-label);
   }
   .folio {
     display: block;
-    font-size: 11px;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: var(--color-taupe);
-  }
-  .page-folio {
-    position: absolute;
-    right: var(--margin-x);
-    bottom: calc(var(--margin-y) * 0.45);
   }
   .running-head {
     display: flex;
     position: absolute;
-    top: clamp(1.5rem, 3.5cqh, 2.5rem);
+    top: clamp(1.25rem, 3.5cqh, 2.5rem);
     inset-inline: var(--margin-x);
+    z-index: 1;
     align-items: flex-end;
-    padding-bottom: 0.9rem;
-    border-bottom: 1px solid rgb(184 168 147 / 0.18);
+    justify-content: space-between;
+    padding-bottom: clamp(0.5rem, 1.4cqh, 0.9rem);
+    border-bottom: 1px solid var(--color-rule);
   }
   .running-head-mark {
-    width: clamp(150px, 13cqw, 210px);
+    width: clamp(130px, min(13cqw, 20cqh), 210px);
   }
-  .ghost-numeral {
-    display: block;
-    position: absolute;
-    bottom: -0.2em;
-    left: calc(var(--margin-x) - 0.05em);
-    font-size: 58cqh;
-    font-weight: 300;
-    line-height: 1;
-    letter-spacing: -0.04em;
-    color: transparent;
-    -webkit-text-stroke: 1px rgb(194 179 161 / 0.09);
-    pointer-events: none;
-    user-select: none;
+  .running-head-title {
+    font-size: 10px;
+    letter-spacing: var(--tracking-spine);
+    text-transform: uppercase;
+    color: var(--color-label);
   }
-  .about-page,
-  .thanks-page {
-    padding-top: calc(var(--margin-y) + 3rem);
+  /* ─── Cover ─── */
+  .cover-fit {
+    justify-content: center;
+    min-height: 100%;
   }
-
-  /* ─── Cover ───
-     The logo is the cover: as wide as the left two-thirds of the page,
-     centred in its height, with the tagline set small beneath it. The
-     services sit at the foot on the right, above the lifted corner. */
-  .cover-page {
-    padding-bottom: calc(var(--margin-y) + 1.5rem);
-  }
-  .cover-page .page-fit {
-    grid-template-rows: auto 1fr auto auto 1fr;
-    grid-template-areas:
-      "ed ed ed ed ed ed . . . . . ."
-      ".  .  .  .  .  .  . . . . . ."
-      "mk mk mk mk mk mk mk mk . . . ."
-      "tg tg tg tg tg tg tg tg . . . ."
-      ".  .  .  .  .  .  . . sv sv sv sv";
-  }
-  .cover-edition {
-    grid-area: ed;
-  }
-  .cover-edition > * {
-    margin: 0;
-  }
-
   .cover-mark {
-    grid-area: mk;
-    width: min(100%, 60cqw);
-    margin: 0;
-  }
-
-  .cover-tagline {
-    grid-area: tg;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-top: clamp(1.25rem, 3.5cqh, 2.25rem);
-  }
-  .cover-tagline > [aria-hidden] {
-    margin: 0;
+    width: min(100%, 62cqw, 900px, 95cqh);
   }
   .cover-tagline p {
-    font-size: clamp(14px, 1.25cqw, 18px);
+    font-size: clamp(15px, 1.35cqw, 20px);
+  }
+  .cover-contents {
+    margin-top: clamp(2.5rem, 10cqh, 7rem);
+  }
+  .cover-contents-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-width: none;
+    width: 100%;
+  }
+  .cover-contents-link {
+    font-size: clamp(14px, 1.15cqw, 17px);
   }
 
-  .cover-services {
-    grid-area: sv;
-    align-self: end;
-    margin: 0;
-  }
-  .cover-page .services {
-    margin: 0;
-    counter-reset: service;
-    font-size: 11px;
-    letter-spacing: 0.28em;
-    color: var(--color-taupe-light);
-  }
-  .cover-page .services li {
-    display: flex;
-    gap: 1.5em;
-    padding-block: 0.95em;
-    border-top: 1px solid rgb(184 168 147 / 0.2);
-  }
-  .cover-page .services li:last-child {
-    border-bottom: 1px solid rgb(184 168 147 / 0.2);
-  }
-  .cover-page .services li:nth-child(n)::before {
-    content: counter(service, decimal-leading-zero);
-    counter-increment: service;
-    color: var(--color-taupe);
-  }
-
-  /* "Open" moves into the bottom-right corner, where the page's corner
-     is lifted a little — the corner the turn will curl from. Hovering
-     lifts it further. The whole corner is the button. */
+  /* "Open" sits in the bottom-right corner, where the page's corner is
+     lifted a little — the corner the turn will curl from. Hovering lifts
+     it further. The whole corner is the link. */
   .cover-page .book-hint {
     inset: auto 0 0 auto;
     justify-content: flex-end;
   }
-  .cover-page .book-hint button {
+  .book-hint-link {
     position: relative;
     padding: 2.5rem var(--margin-x) clamp(1.25rem, 3.2cqh, 2.25rem) 3rem;
+    font-size: 12px;
   }
-  .cover-page .book-hint button::after {
+  .book-hint-link::after {
     content: "";
     position: absolute;
     right: 0;
@@ -545,154 +862,130 @@ body {
     aspect-ratio: 1;
     background: linear-gradient(
       315deg,
-      var(--color-ink) 0 50%,
-      rgb(0 0 0 / 0.55) 50%,
-      #4d4136 52%,
-      #2c2419 100%
+      #e2dacd 0 50%,
+      rgb(0 0 0 / 0.12) 50%,
+      #efe9df 52%,
+      var(--color-page) 100%
     );
     transform-origin: bottom right;
     transition: transform 0.45s var(--ease-book);
   }
-  .cover-page .book-hint button:hover::after,
-  .cover-page .book-hint button:focus-visible::after {
+  .book-hint-link:hover::after,
+  .book-hint-link:focus-visible::after {
     transform: scale(1.5);
   }
 
-  /* ─── About ─── */
-  .about-page .page-fit {
-    grid-template-rows: auto 1fr auto auto;
-    grid-template-areas:
-      "heading heading heading heading heading heading . form form form form form"
-      "bio     bio     bio     bio     bio     bio     . form form form form form"
-      "links   links   links   links   links   links   . form form form form form"
-      "back    back    back    back    back    back    . form form form form form";
-    row-gap: clamp(1.25rem, 3.5cqh, 2.5rem);
+  /* ─── Footer ─── */
+  .page-footer {
+    padding-right: 4rem;
   }
-  .about-page .about-heading {
-    grid-area: heading;
-  }
-  .about-page .about-bio {
-    grid-area: bio;
-    align-self: center;
-    max-width: 22em;
-    font-size: clamp(1.3rem, 2.15cqw, 2.1rem);
-    line-height: 1.5;
-  }
-  .about-page .about-form {
-    grid-area: form;
-    align-self: center;
-    padding-left: clamp(2rem, 4cqw, 4.5rem);
-    border-left: 1px solid rgb(184 168 147 / 0.18);
-  }
-  .about-page .about-links {
-    grid-area: links;
-  }
-  .about-page .about-back {
-    grid-area: back;
+  .page-footer .page-folio {
+    position: absolute;
+    right: 0;
+    bottom: 0.1rem;
   }
 
-  /* ─── Thank you ─── */
-  .thanks-page .page-fit {
-    grid-template-rows: auto auto 1fr auto;
-    grid-template-areas:
-      "label label label label label label label . .      .      .      ."
-      "rule  rule  rule  rule  rule  rule  rule  . .      .      .      ."
-      "title title title title title title title . detail detail detail detail"
-      ".     .     .     .     .     .     .     . detail detail detail detail";
+  /* ─── Projects: tall plates side by side ─── */
+  .project-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .thanks-page .thanks-label {
-    grid-area: label;
-    margin: 0;
+  .project-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
   }
-  .thanks-page .thanks-rule {
-    grid-area: rule;
-    margin: clamp(1.25rem, 3cqh, 2rem) 0 0;
+  .project-image {
+    grid-area: 1 / 1;
+    height: clamp(160px, 40cqh, 520px);
   }
-  .thanks-page .thanks-title {
-    grid-area: title;
-    align-self: center;
-    margin: 0;
-    font-size: clamp(3.5rem, 9cqw, 9.5rem);
-    font-weight: 300;
-    line-height: 1;
-    letter-spacing: -0.02em;
-  }
-  /* The running head carries the wordmark here; once is enough. */
-  .thanks-page .thanks-mark {
-    display: none;
-  }
-  .thanks-page .thanks-detail {
-    grid-area: detail;
+  .project-open {
+    grid-area: 1 / 1;
+    z-index: 1;
     align-self: end;
-    align-items: flex-start;
+    justify-self: end;
+    margin: clamp(0.9rem, 2.4cqh, 1.75rem);
+    font-size: 12px;
+    color: var(--color-ink);
+  }
+  .project-kind {
+    grid-area: 2 / 1;
+    margin-top: clamp(0.6rem, 2cqh, 1.25rem);
+  }
+  .project-title {
+    grid-area: 3 / 1;
+  }
+
+  /* ─── About: text and picture side by side, philosophy beneath ─── */
+  .about-image {
+    height: clamp(150px, 26cqh, 420px);
+  }
+  .philosophy-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-/* Upright pages — a tablet held portrait. The same page, stacked: the
-   tagline takes the middle of the page, and everything that sat to the
-   right on a wide page moves below. */
-@container (min-width: 600px) and (min-height: 561px) and (max-aspect-ratio: 1 / 1) {
-  .cover-page,
-  .about-page,
-  .thanks-page {
-    --margin-x: clamp(4rem, 9.5cqw, 7rem);
-    --margin-y: clamp(2.5rem, 5.5cqh, 5rem);
+/* A short phone (an iPhone SE) needs every line it has for the page
+   itself: the running head steps aside. */
+@container (max-width: 599px) and (max-height: 700px) {
+  .running-head {
+    display: none;
   }
-  .page-fit {
-    row-gap: clamp(1.5rem, 3.5cqh, 3rem);
+  .inner-page {
+    padding-top: var(--margin-y);
   }
+}
 
-  /* ─── Cover ─── */
-  .cover-page .page-fit {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 1fr auto auto 1fr auto;
-    grid-template-areas:
-      "ed"
-      "."
-      "mk"
-      "tg"
-      "."
-      "sv";
-  }
+/* Tablets held upright: too narrow for four contents in a row or for
+   text beside the picture, so the cover's contents sit two by two and the
+   copy takes the page's measure. */
+@container (min-width: 600px) and (max-width: 899px) and (min-height: 561px) {
   .cover-mark {
-    width: 100%;
+    width: min(100%, 72cqw, 95cqh);
   }
-  .cover-services {
-    width: min(100%, 30rem);
+  .cover-contents-list {
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    justify-content: center;
+    gap: clamp(1.25rem, 3cqh, 2rem) clamp(3rem, 9cqw, 5.5rem);
   }
+  .cover-contents-link {
+    font-size: clamp(16px, 2.3cqw, 19px);
+  }
+  .about-bio,
+  .contact-lede {
+    max-width: 30em;
+    font-size: clamp(1.05rem, 2.5cqw, 1.3rem);
+  }
+}
 
-  /* ─── About ─── */
-  .about-page .page-fit {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 1fr auto auto auto;
+/* Wide pages: the mockup's columns. */
+@container (min-width: 900px) and (min-height: 561px) {
+  .about-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
-      "heading"
-      "bio"
-      "form"
-      "links"
-      "back";
+      "text image"
+      "phil phil";
+    align-items: center;
   }
-  .about-page .about-bio {
-    max-width: 24em;
-    font-size: clamp(1.3rem, 3.3cqw, 2.1rem);
+  .about-text {
+    grid-area: text;
   }
-  .about-page .about-form {
-    max-width: 34rem;
-    padding-left: 0;
-    border-left: 0;
+  .about-image {
+    grid-area: image;
+    height: clamp(200px, 40cqh, 480px);
   }
+  .philosophy {
+    grid-area: phil;
+  }
+  .contact-layout {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+}
 
-  /* ─── Thank you ─── */
-  .thanks-page .page-fit {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto 1fr auto;
-    grid-template-areas:
-      "label"
-      "rule"
-      "title"
-      "detail";
-  }
-  .thanks-page .thanks-title {
-    font-size: clamp(3.5rem, 12cqw, 8rem);
+@media (prefers-reduced-motion: reduce) {
+  .project-image,
+  .project-open-arrow,
+  .service-arrow,
+  .book-edges {
+    transition: none;
   }
 }

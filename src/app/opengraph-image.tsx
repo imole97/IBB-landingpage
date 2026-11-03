@@ -8,15 +8,11 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 /**
- * The social card is the wordmark alone, centred on the cover's ink
- * gradient — nothing else on the page.
- *
- * Satori supports neither CSS filters nor mask-image, so this uses the
- * pre-recoloured wordmark from `npm run logo:light` rather than the
- * browser's invert filter.
+ * The social card is the wordmark alone, black on the bone paper —
+ * nothing else on the page.
  */
 export default async function OpengraphImage() {
-  const logo = await readFile(join(process.cwd(), "public", "logo-light.png"));
+  const logo = await readFile(join(process.cwd(), "public", "logo.png"));
   const logoSrc = `data:image/png;base64,${logo.toString("base64")}`;
 
   return new ImageResponse(
@@ -28,8 +24,7 @@ export default async function OpengraphImage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background:
-            "linear-gradient(135deg, #1A1611 0%, #2C2419 50%, #1F1A14 100%)",
+          background: "#F4F0E8",
         }}
       >
         {/* Satori renders plain <img>; next/image has no meaning here. */}

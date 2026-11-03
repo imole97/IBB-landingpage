@@ -8,12 +8,22 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
+  name: z.string().trim().min(1).max(120),
   email: z.email().max(254),
-  /** Optional — plenty of the studio's clients are homeowners. */
-  company: z.string().trim().max(120).optional(),
+  message: z.string().trim().min(10).max(5000),
+  /** "How did you hear about us?" — optional. */
+  heard: z.string().trim().max(200).optional(),
   /** Honeypot — must stay empty. */
   website: z.string().max(200).optional(),
 });
+
+/** What to say about each field that fails — in the form's own voice. */
+const FIELD_ERRORS: Record<string, string> = {
+  name: "Please tell us your name — 120 characters at most.",
+  email: "That address doesn't look right. Mind checking it?",
+  message: "Tell us a little about your space — between a sentence and 5,000 characters.",
+  heard: "That's a little long — 200 characters at most.",
+};
 
 /**
  * Per-IP throttle. In-memory, so it is per serverless instance only —
@@ -52,18 +62,16 @@ export async function POST(request: Request) {
 
   const parsed = schema.safeParse(payload);
   if (!parsed.success) {
-    // Say which field is wrong — a company name that's too long shouldn't
-    // be reported as a bad email address.
-    const field = parsed.error.issues[0]?.path[0];
-    const error =
-      field === "company"
-        ? "That company name is a little long — 120 characters at most."
-        : "That address doesn't look right. Mind checking it?";
-    return NextResponse.json({ ok: false, error }, { status: 400 });
+    // Say which field is wrong, so the form can point at it.
+    const field = String(parsed.error.issues[0]?.path[0] ?? "");
+    return NextResponse.json(
+      { ok: false, field, error: FIELD_ERRORS[field] ?? "Please check the form and try again." },
+      { status: 400 },
+    );
   }
 
-  const { email, website } = parsed.data;
-  const company = parsed.data.company || undefined;
+  const { name, email, message, website } = parsed.data;
+  const heard = parsed.data.heard || undefined;
 
   // Honeypot tripped: look successful, do nothing.
   if (website) return NextResponse.json({ ok: true });
@@ -88,30 +96,30 @@ export async function POST(request: Request) {
 
   /**
    * Local development with no Resend keys succeeds without sending, so the
-   * form's success path and the page-turn can be exercised. Never in
-   * production: a deployment missing its keys must fail loudly rather than
-   * quietly tell people they're on a list they aren't on.
+   * form's success path can be exercised. Never in production: a
+   * deployment missing its keys must fail loudly rather than quietly tell
+   * people their message arrived when it didn't.
    *
-   * MOCK_SIGNUP=1 forces it on for a local production build.
+   * MOCK_CONTACT=1 forces it on for a local production build.
    */
   const mocking =
-    process.env.MOCK_SIGNUP === "1" ||
+    process.env.MOCK_CONTACT === "1" ||
     (!configured && process.env.NODE_ENV !== "production");
 
   if (mocking) {
     console.warn(
-      `[subscribe] MOCK — nothing sent. Would have told ${notify ?? "NOTIFY_EMAIL (unset)"} about ${email}${company ? ` (${company})` : ""}`,
+      `[contact] MOCK — nothing sent. Would have told ${notify ?? "NOTIFY_EMAIL (unset)"} about a message from ${name} <${email}>`,
     );
-    // Stand in for the provider round-trip, so the submitting state lasts
+    // Stand in for the provider round-trip, so the sending state lasts
     // about as long as it will in production.
     await new Promise((resolve) => setTimeout(resolve, 600));
     return NextResponse.json({ ok: true, mocked: true });
   }
 
   if (!apiKey || !from || !notify) {
-    console.error("[subscribe] Resend env vars are not configured");
+    console.error("[contact] Resend env vars are not configured");
     return NextResponse.json(
-      { ok: false, error: "Signups aren't open just yet. Please try again soon." },
+      { ok: false, error: `Messages aren't reaching us just now. Please email ${site.email}.` },
       { status: 503 },
     );
   }
@@ -119,39 +127,40 @@ export async function POST(request: Request) {
   const resend = new Resend(apiKey);
 
   try {
-    // The studio notification is the one that must land — if it fails,
-    // the signup is lost, so its result decides the response.
+    // The studio's copy is the one that must land — if it fails, the
+    // message is lost, so its result decides the response.
     const notification = await resend.emails.send({
       from,
       to: notify,
       replyTo: email,
-      subject: `New waitlist signup — ${company ? `${company}, ` : ""}${email}`,
-      html: notificationEmail({ email, company, ip }),
-      text: `New waitlist signup: ${email}${company ? `\nCompany: ${company}` : ""}\nIP: ${ip}\nAt: ${new Date().toISOString()}`,
+      subject: `New enquiry — ${name}`,
+      html: notificationEmail({ name, email, message, heard, ip }),
+      text: `New enquiry from ${name} <${email}>\n\n${message}${heard ? `\n\nHeard about us: ${heard}` : ""}\n\nIP: ${ip}\nAt: ${new Date().toISOString()}`,
     });
 
     if (notification.error) throw new Error(notification.error.message);
 
-    // The subscriber confirmation is best-effort: a bounce here should
-    // not tell someone their signup failed when it didn't.
+    // The confirmation is best-effort: a bounce here should not tell
+    // someone their message failed when it didn't.
     const confirmation = await resend.emails.send({
       from,
       to: email,
-      subject: `You're on the list — ${site.name}`,
-      html: confirmationEmail(),
-      text: `Thank you. We'll be in touch to begin your story.\n\n${site.name} — ${site.tagline}\n${site.url}`,
+      replyTo: site.email,
+      subject: `Thank you for getting in touch — ${site.name}`,
+      html: confirmationEmail({ name }),
+      text: `Dear ${name},\n\nThank you for getting in touch. We'll be in touch to begin your story.\n\n${site.name} — ${site.tagline}\n${site.url}`,
     });
 
     if (confirmation.error) {
-      console.error("[subscribe] confirmation failed:", confirmation.error);
+      console.error("[contact] confirmation failed:", confirmation.error);
     }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
     // Never surface the provider's message to the client.
-    console.error("[subscribe] send failed:", error);
+    console.error("[contact] send failed:", error);
     return NextResponse.json(
-      { ok: false, error: "We couldn't save that just now. Please try again." },
+      { ok: false, error: "We couldn't send that just now. Please try again." },
       { status: 502 },
     );
   }
