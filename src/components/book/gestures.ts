@@ -1,0 +1,325 @@
+import type { Pt } from "./curl";
+import type { PageTurner } from "./turner";
+
+/**
+ * A wheel fires dozens of events per swipe and keeps firing them through
+ * its inertia. A gesture is over only once the stream has gone quiet for
+ * this long — an up-and-down gesture turns at most one page.
+ */
+const WHEEL_QUIET_MS = 260;
+const WHEEL_THRESHOLD = 40;
+/** A sideways trackpad swipe holding the page lets go once its stream pauses this long. */
+const SWIPE_QUIET_MS = 140;
+const SWIPE_THRESHOLD = 50;
+/** A press becomes a drag after moving this far. */
+const DEAD_ZONE = 8;
+/** With a mouse, the page is taken hold of by its outer edge, this much of its width. */
+const EDGE = 0.15;
+/** The mouse lifts a corner from this far away. */
+const CORNER = 110;
+
+type Options = {
+  frame: HTMLElement;
+  turner: PageTurner;
+  /** The page `step` away from the one being read, if there is one. */
+  neighbour(step: 1 | -1): string | undefined;
+  /** Turn a whole page, the way a link would. */
+  go(step: 1 | -1): void;
+};
+
+const reducedMotion = () =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const canHover = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+/** Would this event scroll something inside the page, rather than the page? */
+function scrollsInside(target: EventTarget | null, dy: number) {
+  let el = target instanceof Element ? target : null;
+  while (el && !el.classList.contains("book-page")) {
+    if (el.scrollHeight > el.clientHeight + 1) {
+      const atTop = el.scrollTop <= 0;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+      if ((dy > 0 && !atBottom) || (dy < 0 && !atTop)) return true;
+    }
+    el = el.parentElement;
+  }
+  return false;
+}
+
+/** Somewhere to type, where a drag means selecting text. */
+const isField = (t: EventTarget | null) =>
+  t instanceof HTMLElement &&
+  (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
+
+/**
+ * Taking hold of the page.
+ *
+ * - Drag it: by its outer edge with a mouse, from anywhere with a finger.
+ *   Right to left turns forward, left to right back. Let go part way and
+ *   it falls back; past halfway, or flicked, it carries on over.
+ * - With a mouse, the corner lifts as the pointer comes near it. Click
+ *   there and the page turns.
+ * - Swipe sideways on a trackpad and the page follows the fingers.
+ * - Scroll up or down, or swipe up or down on a touch screen, and a whole
+ *   page turns. Something inside a page that scrolls, like a long message
+ *   being typed, keeps the gesture for itself until it reaches its end.
+ */
+export function bindGestures({ frame, turner, neighbour, go }: Options) {
+  const local = (e: { clientX: number; clientY: number }): Pt => {
+    const r = frame.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
+  // ── Pressing and dragging ─────────────────────────────────────────
+  type Press = {
+    id: number;
+    mouse: boolean;
+    at: Pt;
+    target: EventTarget | null;
+    /** For a mouse, decided by which edge was pressed; for a finger, by the drag. */
+    forward: boolean | null;
+    /** Pressed on a corner the mouse had lifted. */
+    corner: boolean;
+    state: "pending" | "held" | "vertical" | "ignored";
+  };
+  let press: Press | null = null;
+  /** A drag ends in a pointerup that the browser follows with a click. */
+  let swallowClick = false;
+  /** The corner the mouse is lifting, if any. */
+  let lifted: boolean | null = null;
+
+  const unlift = () => {
+    if (lifted === null) return;
+    lifted = null;
+    turner.lift(true, null, null);
+  };
+
+  const onPointerDown = (e: PointerEvent) => {
+    swallowClick = false;
+    if (!e.isPrimary || e.button !== 0 || turner.busy || isField(e.target)) return;
+    const at = local(e);
+    const W = frame.clientWidth;
+    const mouse = e.pointerType === "mouse";
+    let forward: boolean | null = null;
+    if (mouse) {
+      if (lifted !== null) forward = lifted;
+      else if (at.x > W * (1 - EDGE)) forward = true;
+      else if (at.x < W * EDGE) forward = false;
+      else return;
+      // Keep the press from starting a text selection.
+      e.preventDefault();
+    }
+    press = {
+      id: e.pointerId,
+      mouse,
+      at,
+      target: e.target,
+      forward,
+      corner: lifted !== null,
+      state: "pending",
+    };
+  };
+
+  const onPointerMove = (e: PointerEvent) => {
+    if (!press) {
+      if (e.pointerType === "mouse" && e.buttons === 0) hover(local(e));
+      return;
+    }
+    if (e.pointerId !== press.id || press.state === "vertical" || press.state === "ignored") {
+      return;
+    }
+    const p = local(e);
+    if (press.state === "pending") {
+      const dx = p.x - press.at.x;
+      const dy = p.y - press.at.y;
+      if (Math.hypot(dx, dy) < DEAD_ZONE) return;
+      if (!press.mouse) {
+        if (Math.abs(dy) > Math.abs(dx)) {
+          press.state = "vertical";
+          return;
+        }
+        press.forward = dx < 0;
+      }
+      const forward = press.forward ?? true;
+      if (reducedMotion()) {
+        press.state = "ignored";
+        return;
+      }
+      const corner = press.at.y < frame.clientHeight / 2 ? "top" : "bottom";
+      if (!turner.grab(forward, neighbour(forward ? 1 : -1) ?? null, press.at, corner)) {
+        press.state = "ignored";
+        return;
+      }
+      lifted = null;
+      press.state = "held";
+      swallowClick = true;
+      document.documentElement.style.userSelect = "none";
+      window.getSelection()?.removeAllRanges();
+    }
+    turner.drag(p);
+  };
+
+  const onPointerUp = (e: PointerEvent) => {
+    if (!press || e.pointerId !== press.id) return;
+    const done = press;
+    press = null;
+    document.documentElement.style.userSelect = "";
+    if (done.state === "held") {
+      turner.release();
+      return;
+    }
+    const p = local(e);
+    const dx = p.x - done.at.x;
+    const dy = done.at.y - p.y; // positive = swiped up = read on
+    if (!done.mouse) {
+      // Swiped up or down, or (without motion) sideways: a whole page.
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        if (reducedMotion() && Math.abs(dx) >= SWIPE_THRESHOLD) go(dx > 0 ? -1 : 1);
+      } else if (Math.abs(dy) > SWIPE_THRESHOLD && !scrollsInside(done.target, dy)) {
+        go(dy > 0 ? 1 : -1);
+      }
+      return;
+    }
+    // A click on a lifted corner turns the page — unless it was on a link.
+    if (done.corner && done.state === "pending" && !(done.target as Element)?.closest?.("a,button")) {
+      go(done.forward === false ? -1 : 1);
+    }
+  };
+
+  const onPointerCancel = (e: PointerEvent) => {
+    if (!press || e.pointerId !== press.id) return;
+    if (press.state === "held") turner.release();
+    press = null;
+    document.documentElement.style.userSelect = "";
+  };
+
+  const onClick = (e: MouseEvent) => {
+    if (!swallowClick) return;
+    swallowClick = false;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  // Links and images are draggable by default; here a drag turns the page.
+  const onDragStart = (e: DragEvent) => e.preventDefault();
+
+  // ── The mouse near a corner ───────────────────────────────────────
+  const hover = (p: Pt) => {
+    if (!canHover() || turner.busy) return;
+    const W = frame.clientWidth;
+    const H = frame.clientHeight;
+    const next = neighbour(1);
+    const prev = neighbour(-1);
+    const nearNext = !!next && Math.hypot(p.x - W, p.y - H) < CORNER;
+    const nearPrev = !!prev && Math.hypot(p.x, p.y - H) < CORNER * 0.8;
+    if (nearNext || nearPrev) {
+      if (lifted !== null && lifted !== nearNext) unlift();
+      lifted = nearNext;
+      turner.lift(nearNext, (nearNext ? next : prev) ?? null, p);
+    } else {
+      unlift();
+    }
+  };
+  const onLeave = (e: PointerEvent) => {
+    if (e.pointerType === "mouse" && !press) unlift();
+  };
+
+  // ── The wheel and the trackpad ────────────────────────────────────
+  let lastWheel = 0;
+  let mode: "new" | "vertical" | "sideways" | "spent" = "new";
+  let sumX = 0;
+  let sumY = 0;
+  let swipe: { at: Pt } | null = null;
+  let quiet: ReturnType<typeof setTimeout> | undefined;
+
+  const letGoOfSwipe = () => {
+    clearTimeout(quiet);
+    if (!swipe) return;
+    // Quiet by the clock may only mean the page was busy — the next page
+    // arriving — with the fingers' events still queued behind it. Give
+    // them two frames to come in before deciding the fingers have lifted.
+    const at = lastWheel;
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (swipe && lastWheel === at) release();
+      }),
+    );
+  };
+  const release = () => {
+    if (!swipe) return;
+    swipe = null;
+    mode = "spent";
+    turner.release();
+  };
+
+  const onWheel = (e: WheelEvent) => {
+    const now = performance.now();
+    if (now - lastWheel > WHEEL_QUIET_MS && !swipe) {
+      mode = "new";
+      sumX = 0;
+      sumY = 0;
+    }
+    lastWheel = now;
+    if (mode === "spent") return;
+
+    const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? frame.clientHeight : 1;
+    sumX += e.deltaX * scale;
+    sumY += e.deltaY * scale;
+    if (mode === "new") {
+      if (Math.abs(sumX) + Math.abs(sumY) < 6) return;
+      mode = Math.abs(sumX) > Math.abs(sumY) ? "sideways" : "vertical";
+    }
+
+    if (mode === "vertical") {
+      if (Math.abs(sumY) > WHEEL_THRESHOLD && !scrollsInside(e.target, e.deltaY)) {
+        mode = "spent";
+        go(sumY > 0 ? 1 : -1);
+      }
+      return;
+    }
+
+    // Sideways: the page follows the fingers. A swipe to the left reports
+    // positive deltaX and reads on.
+    if (!swipe) {
+      if (reducedMotion()) {
+        if (Math.abs(sumX) > WHEEL_THRESHOLD) {
+          mode = "spent";
+          go(sumX > 0 ? 1 : -1);
+        }
+        return;
+      }
+      const forward = sumX > 0;
+      const W = frame.clientWidth;
+      const at = { x: forward ? W : 0, y: frame.clientHeight * 0.85 };
+      unlift();
+      if (!turner.grab(forward, neighbour(forward ? 1 : -1) ?? null, at, "bottom")) {
+        mode = "spent";
+        return;
+      }
+      swipe = { at };
+    }
+    turner.drag({ x: swipe.at.x - sumX, y: swipe.at.y });
+    clearTimeout(quiet);
+    quiet = setTimeout(letGoOfSwipe, SWIPE_QUIET_MS);
+  };
+
+  window.addEventListener("pointerdown", onPointerDown);
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", onPointerUp);
+  window.addEventListener("pointercancel", onPointerCancel);
+  document.documentElement.addEventListener("pointerleave", onLeave);
+  window.addEventListener("click", onClick, true);
+  frame.addEventListener("dragstart", onDragStart);
+  window.addEventListener("wheel", onWheel, { passive: true });
+  return () => {
+    clearTimeout(quiet);
+    window.removeEventListener("pointerdown", onPointerDown);
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointercancel", onPointerCancel);
+    document.documentElement.removeEventListener("pointerleave", onLeave);
+    window.removeEventListener("click", onClick, true);
+    frame.removeEventListener("dragstart", onDragStart);
+    window.removeEventListener("wheel", onWheel);
+  };
+}
