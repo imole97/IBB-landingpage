@@ -87,6 +87,8 @@ body {
   position: relative;
   width: 100vw;
   height: 100dvh;
+  /* A finger resting on the page to peek is a long press: no callout. */
+  -webkit-touch-callout: none;
 }
 
 /* The page being read. Each route renders into it. */

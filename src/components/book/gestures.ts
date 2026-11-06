@@ -8,8 +8,16 @@ import type { PageTurner } from "./turner";
  */
 const WHEEL_QUIET_MS = 260;
 const WHEEL_THRESHOLD = 40;
-/** A sideways trackpad swipe holding the page lets go once its stream pauses this long. */
+/** A sideways trackpad swipe's stream has paused when it's been quiet this long. */
 const SWIPE_QUIET_MS = 140;
+/**
+ * Fingers resting on a trackpad send nothing, so a hand holding the page
+ * still to peek looks just like one that's been lifted. When the swipe
+ * slowed to a stop, rather than coasting off, the page is held where it
+ * is for this long — and picks up again if the fingers move — before it's
+ * taken as let go.
+ */
+const RESTING_MS = 1600;
 const SWIPE_THRESHOLD = 50;
 /** A press becomes a drag after moving this far. */
 const DEAD_ZONE = 8;
@@ -94,6 +102,13 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
     turner.lift(true, null, null);
   };
 
+  /** Text selection, off while a hand has hold of the page. */
+  const selecting = (on: boolean) => {
+    const style = document.documentElement.style;
+    style.userSelect = on ? "" : "none";
+    style.setProperty("-webkit-user-select", on ? "" : "none");
+  };
+
   const onPointerDown = (e: PointerEvent) => {
     swallowClick = false;
     if (!e.isPrimary || e.button !== 0 || turner.busy || isField(e.target)) return;
@@ -109,6 +124,8 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
       // Keep the press from starting a text selection.
       e.preventDefault();
     }
+    // A finger held still mustn't start selecting text under it.
+    if (!mouse) selecting(false);
     press = {
       id: e.pointerId,
       mouse,
@@ -153,7 +170,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
       lifted = null;
       press.state = "held";
       swallowClick = true;
-      document.documentElement.style.userSelect = "none";
+      selecting(false);
       window.getSelection()?.removeAllRanges();
     }
     turner.drag(p);
@@ -163,7 +180,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
     if (!press || e.pointerId !== press.id) return;
     const done = press;
     press = null;
-    document.documentElement.style.userSelect = "";
+    selecting(true);
     if (done.state === "held") {
       turner.release();
       return;
@@ -190,7 +207,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
     if (!press || e.pointerId !== press.id) return;
     if (press.state === "held") turner.release();
     press = null;
-    document.documentElement.style.userSelect = "";
+    selecting(true);
   };
 
   const onClick = (e: MouseEvent) => {
@@ -198,6 +215,12 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
     swallowClick = false;
     e.preventDefault();
     e.stopPropagation();
+  };
+
+  // A finger held still on a phone is a long press: the browser would offer
+  // a menu or start selecting text, and take the page from the hand.
+  const onContextMenu = (e: Event) => {
+    if (press && !press.mouse) e.preventDefault();
   };
 
   // Links and images are draggable by default; here a drag turns the page.
@@ -231,10 +254,29 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
   let sumY = 0;
   let swipe: { at: Pt } | null = null;
   let quiet: ReturnType<typeof setTimeout> | undefined;
+  /** The swipe's latest sideways steps, to tell coasting from stopping. */
+  let steps: number[] = [];
 
-  const letGoOfSwipe = () => {
+  /**
+   * Fingers lifted mid-swipe leave the trackpad coasting: a run of steps,
+   * each a little smaller than the last, dying away. Fingers that slow to a
+   * stop and rest there don't.
+   */
+  const coasting = () => {
+    const tail = steps.slice(-5);
+    if (tail.length < 5) return false;
+    for (let i = 1; i < tail.length; i++) if (tail[i] > tail[i - 1] * 1.02) return false;
+    return tail[tail.length - 1] < tail[0] * 0.85;
+  };
+
+  const letGoOfSwipe = (resting = false) => {
     clearTimeout(quiet);
     if (!swipe) return;
+    if (!resting && !coasting()) {
+      // Stopped, not coasting: most likely resting on the page to peek.
+      quiet = setTimeout(() => letGoOfSwipe(true), RESTING_MS - SWIPE_QUIET_MS);
+      return;
+    }
     // Quiet by the clock may only mean the page was busy — the next page
     // arriving — with the fingers' events still queued behind it. Give
     // them two frames to come in before deciding the fingers have lifted.
@@ -297,10 +339,13 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
         return;
       }
       swipe = { at };
+      steps = [];
     }
+    steps.push(Math.abs(e.deltaX * scale));
+    if (steps.length > 8) steps.shift();
     turner.drag({ x: swipe.at.x - sumX, y: swipe.at.y });
     clearTimeout(quiet);
-    quiet = setTimeout(letGoOfSwipe, SWIPE_QUIET_MS);
+    quiet = setTimeout(() => letGoOfSwipe(), SWIPE_QUIET_MS);
   };
 
   window.addEventListener("pointerdown", onPointerDown);
@@ -309,6 +354,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
   window.addEventListener("pointercancel", onPointerCancel);
   document.documentElement.addEventListener("pointerleave", onLeave);
   window.addEventListener("click", onClick, true);
+  window.addEventListener("contextmenu", onContextMenu);
   frame.addEventListener("dragstart", onDragStart);
   window.addEventListener("wheel", onWheel, { passive: true });
   return () => {
@@ -319,6 +365,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
     window.removeEventListener("pointercancel", onPointerCancel);
     document.documentElement.removeEventListener("pointerleave", onLeave);
     window.removeEventListener("click", onClick, true);
+    window.removeEventListener("contextmenu", onContextMenu);
     frame.removeEventListener("dragstart", onDragStart);
     window.removeEventListener("wheel", onWheel);
   };
