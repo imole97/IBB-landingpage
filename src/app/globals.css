@@ -453,6 +453,9 @@ body {
   font-size: clamp(2.6rem, min(9cqw, 12cqh), 8.5rem);
   font-weight: 400;
   line-height: 1.05;
+  /* The wordmark's hand sets its capitals taller than the line it sits
+     on; this clears them off whatever is above. */
+  padding-top: 0.18em;
   color: var(--color-ink);
 }
 .script-heading--long {
