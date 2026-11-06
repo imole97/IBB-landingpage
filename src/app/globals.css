@@ -61,10 +61,10 @@ body {
 
 /* ══════════════════════════════════════════════════════════════
    THE BOOK
-   One page at a time, turned with page-flip (StPageFlip), which
-   curls the paper from the corner rather than rotating a card.
+   One page at a time, turned by folding the paper back from its
+   corner rather than rotating a card (see turner.ts and curl.ts).
    Everything here is the object the pages live in: the frame,
-   the pages beneath it, the binding. page-flip draws the turn.
+   the pages beneath it, the binding, and the turning sheet.
    ══════════════════════════════════════════════════════════════ */
 
 /* The whole viewport is the book's page. Nothing scrolls — scroll
@@ -82,12 +82,13 @@ body {
 }
 
 /* On every screen the page is the screen: a full-bleed page you're
-   reading, not a small book on a table. Exactly one page wide, so
-   page-flip never lays out a two-page spread. */
+   reading, not a small book on a table. */
 .book-frame {
   position: relative;
   width: 100vw;
   height: 100dvh;
+  /* A finger resting on the page to peek is a long press: no callout. */
+  -webkit-touch-callout: none;
 }
 
 /* The page being read. Each route renders into it. */
@@ -101,27 +102,8 @@ body {
   isolation: isolate;
 }
 
-/* page-flip's root, laid over the live page. Between turns it's invisible
-   and lets every click through; during a turn it holds the leaf being
-   turned and the page beneath. page-flip injects its own stylesheet; this
-   only stops its pan-y from scrolling the page. */
-.book-root {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  visibility: hidden;
-  pointer-events: none;
-}
-.book-frame[data-turning] .book-root {
-  visibility: visible;
-  pointer-events: auto;
-}
-.book-root.stf__parent {
-  touch-action: pinch-zoom;
-}
 
-/* A page. page-flip sets its size and position once it has mounted.
-   It's a size container, so the spacing inside can be proportioned to the
+/* A page. It's a size container, so the spacing inside can be proportioned to the
    page's own height (cqh) rather than guessing at the screen's. */
 .book-page {
   container-type: size;
@@ -160,14 +142,6 @@ body {
   );
 }
 
-/* The underside of a turning page. page-flip draws it from a clone of the
-   front; paper's back is blank, so the clone keeps only its surface. */
-.book-page--back {
-  background: linear-gradient(135deg, #eee8dd 0%, var(--color-page-deep) 55%, #e8e2d6 100%);
-}
-.book-page--back > * {
-  visibility: hidden;
-}
 
 /* The book's thickness. Pages already read stack under the left edge,
    pages still to come under the right — a few hairlines each, thinning and
@@ -233,17 +207,21 @@ body {
 }
 
 /* The photograph of the page being left, laid over it the instant a turn
-   begins so the route can change underneath unseen. */
+   begins so the route can change underneath unseen, and the sheet that
+   turns. It takes no clicks: they go to the page beneath, and the hand
+   turning the page is followed from the window (gestures.ts). */
 .book-hold {
   position: absolute;
   inset: 0;
   z-index: 4;
   display: none;
+  pointer-events: none;
 }
 .book-frame[data-holding] .book-hold {
   display: block;
 }
-.book-hold > .book-page {
+.book-hold > .book-page,
+.book-curl-leaf > .book-page {
   position: absolute;
   inset: 0;
   /* Each sheet is its own stack, so nothing on a sheet beneath can show
@@ -251,49 +229,58 @@ body {
   isolation: isolate;
 }
 
-/* The turn on a tall page (see fold() in BookShell). The flap is the
-   back of the page, folded over; it and its shading are placed in
-   pixels from script, from the top-left corner. */
-.book-fold-flap {
+/* The turning sheet (see curl.ts). Its front is clipped to what still
+   lies flat; the flap is its back, folded over and mirrored across the
+   fold. The flap and the shading are placed in pixels from script, from
+   the top-left corner. */
+.book-curl-leaf {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  will-change: clip-path;
+}
+.book-curl-flap {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   transform-origin: 0 0;
   will-change: transform, clip-path;
-  background: linear-gradient(135deg, #eee8dd 0%, var(--color-page-deep) 55%, #e8e2d6 100%);
+  /* The back of the sheet: the same paper, a shade deeper, lit from the
+     open side of the book. */
+  background: linear-gradient(135deg, #eee8dd 0%, var(--color-page-deep) 55%, #e6dfd2 100%);
 }
-/* Light across the folded paper: a crease of shadow at the fold, a soft
-   highlight where it rounds over, darkening again toward its edge. */
-.book-fold-shade,
-.book-fold-cast {
+.book-curl-shade,
+.book-curl-cast {
   position: absolute;
   top: 0;
   left: 0;
   transform-origin: 0 0;
   pointer-events: none;
+  will-change: transform, opacity;
 }
-.book-fold-shade {
+/* Light across the folded paper, as it rounds over the fold: a crease of
+   shadow right at the fold, a soft highlight where the paper curves up to
+   meet the light, then a gentle falling-off toward its edge. */
+.book-curl-shade {
   background: linear-gradient(
     to right,
-    rgb(28 27 25 / 0.2) 0,
-    rgb(255 255 255 / 0.25) 22px,
-    rgb(255 255 255 / 0) 90px,
-    rgb(28 27 25 / 0.06) 40%
+    rgb(28 27 25 / 0.16) 0,
+    rgb(28 27 25 / 0.05) 6px,
+    rgb(255 255 255 / 0.32) 24px,
+    rgb(255 255 255 / 0.1) 70px,
+    rgb(255 255 255 / 0) 140px,
+    rgb(28 27 25 / 0.05) 40%
   );
 }
-/* The shadow on the page beneath, deepest at the fold. Scaled with the
-   page so it's a slim shadow on a phone and broader on a tablet. */
-.book-fold-cast {
+/* The shadow the standing paper throws on the page beneath: deepest
+   tucked in at the fold, softening as it spreads. */
+.book-curl-cast {
   background: linear-gradient(
     to right,
-    rgb(28 27 25 / 0.28) 0,
-    rgb(28 27 25 / 0.1) 2.5%,
-    transparent 7%
+    rgb(28 27 25 / 0.3) 0,
+    rgb(28 27 25 / 0.14) 1%,
+    rgb(28 27 25 / 0.05) 3%,
+    transparent 6%
   );
-}
-.book-hold > .book-fold-cast {
-  z-index: 0;
 }
 
 /* The "Open" hint on the cover fades in once, after the cover itself. */
@@ -309,14 +296,6 @@ body {
   }
 }
 
-/* page-flip writes its minWidth / minHeight settings onto the root as
-   inline styles. BookShell sets an unreachable minWidth to force a single
-   page, so those inline minimums must never actually apply. */
-.book-root.stf__parent {
-  min-width: 0 !important;
-  min-height: 0 !important;
-  touch-action: pinch-zoom;
-}
 
 /* ══════════════════════════════════════════════════════════════
    REVEAL — prototype .rev / .rev-d1…d5 (lines 575–581)
@@ -474,6 +453,9 @@ body {
   font-size: clamp(2.6rem, min(9cqw, 12cqh), 8.5rem);
   font-weight: 400;
   line-height: 1.05;
+  /* The wordmark's hand sets its capitals taller than the line it sits
+     on; this clears them off whatever is above. */
+  padding-top: 0.18em;
   color: var(--color-ink);
 }
 .script-heading--long {

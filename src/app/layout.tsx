@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Comfortaa, Dawning_of_a_New_Day } from "next/font/google";
+import { Comfortaa } from "next/font/google";
+import localFont from "next/font/local";
 import { BookShell } from "@/components/book/BookShell";
 import { Cursor } from "@/components/Cursor";
 import { Stage } from "@/components/Stage";
@@ -21,14 +22,14 @@ const comfortaa = Comfortaa({
 const title = `${site.name} — Interior Design Studio | London & Lagos`;
 const shareTitle = `${site.name} — Interior Design Studio`;
 
-// The page titles — "About Us", "Our Services" — in a thin, upright hand
-// close to the wordmark's. A stand-in until the client supplies lettering.
-const script = Dawning_of_a_New_Day({
+// The page titles — "About Us", "Our Services" — in the wordmark's own
+// hand, so the headings and the logo read as one.
+const script = localFont({
   variable: "--font-script",
-  subsets: ["latin"],
+  src: "../../assets/fonts/Dr Carbfred.ttf",
   weight: "400",
   display: "swap",
-  // next/font has no metrics for this face to size a fallback with.
+  // A script has no fallback worth sizing to match.
   adjustFontFallback: false,
 });
 
