@@ -11,9 +11,10 @@ import { site, absoluteUrl } from "@/lib/site";
  * Email-safe throughout: tables, inline styles, nothing that needs
  * JavaScript or a stylesheet to make sense. Comfortaa is offered to the
  * clients that can load it (Apple Mail, iOS); everywhere else falls back
- * to a rounded system face. The page titles' script hand can't be relied
- * on in any client, so "Thank you" is lettering in an image, with alt
- * text styled to stand in when images are blocked.
+ * to a rounded system face. The wordmark's hand, Dr Carbfred (the page
+ * titles' face), can't be relied on in any client, so "Thank you" is
+ * lettering in an image, with alt text styled to stand in when images
+ * are blocked.
  *
  * Images are served from the live site (site.url), so they appear in
  * real emails once that deploy is up. The preview script points them at
@@ -256,8 +257,8 @@ export function confirmationEmail({
     preview: "Your note has reached the studio — we’ll be in touch within two working days.",
     postscript: `You&rsquo;re receiving this because you wrote to us at interiorsbyb.net.<br>${site.name} &middot; London &amp; Lagos`,
     body: bodyRow(`
-      <img class="ibb-lettering" src="${absoluteUrl("/email/thank-you.png")}" width="260" alt="Thank you"
-           style="display:block;width:260px;max-width:100%;height:auto;border:0;margin:0 0 0 -10px;font-family:Georgia,serif;font-style:italic;font-size:40px;line-height:1.2;color:${INK};">
+      <img class="ibb-lettering" src="${absoluteUrl("/email/thank-you.png")}" width="280" alt="Thank you"
+           style="display:block;width:280px;max-width:100%;height:auto;border:0;margin:0;font-family:Georgia,serif;font-style:italic;font-size:40px;line-height:1.2;color:${INK};">
 
       ${rule(30)}
 
