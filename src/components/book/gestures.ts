@@ -8,6 +8,8 @@ import type { PageTurner } from "./turner";
  */
 const WHEEL_QUIET_MS = 260;
 const WHEEL_THRESHOLD = 40;
+/** Quiet this long, the trackpad has truly stopped: whatever comes next is a new gesture. */
+const SILENCE_MS = 600;
 /** A sideways trackpad swipe's stream has paused when it's been quiet this long. */
 const SWIPE_QUIET_MS = 140;
 /**
@@ -281,10 +283,18 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
   let mode: "new" | "vertical" | "sideways" | "spent" = "new";
   let sumX = 0;
   let sumY = 0;
-  let swipe: { at: Pt } | null = null;
+  let swipe: { at: Pt; forward: boolean } | null = null;
   let quiet: ReturnType<typeof setTimeout> | undefined;
   /** The swipe's latest sideways steps, to tell coasting from stopping. */
   let steps: number[] = [];
+  /** The last step of a swipe that's over, still dying away. */
+  let lastStep = 0;
+  /** The finished swipe was sideways, and may be coasting on through a pause. */
+  let coastable = false;
+  /** How many steps of steady shrinking it takes to call it coasting. */
+  const COAST_STEPS = 6;
+  /** A coasting trackpad is moving at least this much a step: a flick, not a slowing hand. */
+  const FLING_STEP = 4;
 
   /**
    * Fingers lifted mid-swipe leave the trackpad coasting: a run of steps,
@@ -292,10 +302,17 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
    * stop and rest there don't.
    */
   const coasting = () => {
-    const tail = steps.slice(-5);
-    if (tail.length < 5) return false;
-    for (let i = 1; i < tail.length; i++) if (tail[i] > tail[i - 1] * 1.02) return false;
-    return tail[tail.length - 1] < tail[0] * 0.85;
+    const tail = steps.slice(-COAST_STEPS);
+    if (tail.length < COAST_STEPS) return false;
+    // Coasting shrinks smoothly, a little every step. A hand slowing to a
+    // stop drops off sharply; a hand moving on steadily doesn't shrink.
+    let level = 0;
+    for (let i = 1; i < tail.length; i++) {
+      const r = tail[i] / tail[i - 1];
+      if (r < 0.7 || r > 1) return false;
+      if (r === 1 && ++level > 1) return false;
+    }
+    return tail[tail.length - 1] < tail[0] * 0.8;
   };
 
   const letGoOfSwipe = (resting = false) => {
@@ -316,24 +333,40 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
       }),
     );
   };
-  const release = () => {
+  const release = (flung?: "over" | "back") => {
     if (!swipe) return;
     swipe = null;
     mode = "spent";
-    turner.release();
+    coastable = true;
+    clearTimeout(quiet);
+    turner.release(flung);
   };
 
   const onWheel = (e: WheelEvent) => {
     const now = performance.now();
-    if (now - lastWheel > WHEEL_QUIET_MS && !swipe) {
+    const gap = now - lastWheel;
+    lastWheel = now;
+    if (gap > WHEEL_QUIET_MS && !swipe && mode !== "spent") {
       mode = "new";
       sumX = 0;
       sumY = 0;
     }
-    lastWheel = now;
-    if (mode === "spent") return;
-
     const scale = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? frame.clientHeight : 1;
+    if (mode === "spent") {
+      // A finished swipe's coasting only ever dies away. A new swipe shows
+      // itself by a step that grows sharply, or by coming after a real
+      // silence — not just a pause while the page was busy turning, which
+      // the coasting can sit through and then carry on.
+      const step = Math.abs(e.deltaX * scale) + Math.abs(e.deltaY * scale);
+      const fresh =
+        gap > (coastable ? SILENCE_MS : WHEEL_QUIET_MS) || step > Math.max(6, lastStep * 1.8);
+      lastStep = step;
+      if (!fresh) return;
+      mode = "new";
+      sumX = 0;
+      sumY = 0;
+    }
+
     sumX += e.deltaX * scale;
     sumY += e.deltaY * scale;
     if (mode === "new") {
@@ -344,6 +377,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
     if (mode === "vertical") {
       if (Math.abs(sumY) > WHEEL_THRESHOLD && !scrollsInside(e.target, e.deltaY)) {
         mode = "spent";
+        coastable = false;
         go(sumY > 0 ? 1 : -1);
       }
       return;
@@ -355,6 +389,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
       if (reducedMotion()) {
         if (Math.abs(sumX) > WHEEL_THRESHOLD) {
           mode = "spent";
+          coastable = true;
           go(sumX > 0 ? 1 : -1);
         }
         return;
@@ -363,16 +398,32 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
       const W = frame.clientWidth;
       const at = { x: forward ? W : 0, y: frame.clientHeight * 0.85 };
       unlift();
-      if (!turner.grab(forward, neighbour(forward ? 1 : -1) ?? null, at, "bottom")) {
-        mode = "spent";
+      if (turner.busy) {
+        // The last page is still landing: catch this swipe as soon as it has.
+        sumX = 0;
         return;
       }
-      swipe = { at };
+      if (!turner.grab(forward, neighbour(forward ? 1 : -1) ?? null, at, "bottom")) {
+        mode = "spent";
+        coastable = true;
+        return;
+      }
+      swipe = { at, forward };
       steps = [];
     }
-    steps.push(Math.abs(e.deltaX * scale));
+    const step = e.deltaX * scale;
+    steps.push(Math.abs(step));
     if (steps.length > 8) steps.shift();
     turner.drag({ x: swipe.at.x - sumX, y: swipe.at.y });
+    if (coasting() && steps[steps.length - COAST_STEPS] >= FLING_STEP) {
+      // The fingers have lifted and left the page coasting: a flick. Let go
+      // now, the way it was flung, rather than trailing the whole coast.
+      // (A swipe to the left, positive deltaX, sends the page forward.)
+      const onward = step > 0 === swipe.forward;
+      lastStep = Math.abs(step);
+      release(onward ? "over" : "back");
+      return;
+    }
     clearTimeout(quiet);
     quiet = setTimeout(() => letGoOfSwipe(), SWIPE_QUIET_MS);
   };

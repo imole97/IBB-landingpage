@@ -279,8 +279,11 @@ export class PageTurner {
     return b.t > a.t ? ((b.x - a.x) * 1000) / (b.t - a.t) : 0;
   }
 
-  /** The hand lets go. */
-  release() {
+  /**
+   * The hand lets go. `flung` says the hand was already sending the page
+   * one way as it let go — a trackpad left coasting — so it goes that way.
+   */
+  release(flung?: "over" | "back") {
     const turn = this.turn;
     if (!turn || turn.phase !== "held") return;
     const { W } = turn;
@@ -288,9 +291,8 @@ export class PageTurner {
     const rate = -this.speed(turn) / (2 * W);
     // For the reader, "over" means on to the other page — for a page coming
     // back, that's down flat.
-    turn.turning =
-      !!turn.target &&
-      (turn.forward ? letGo(t, rate) === "over" : letGo(1 - t, -rate) === "over");
+    const way = flung ?? (turn.forward ? letGo(t, rate) : letGo(1 - t, -rate));
+    turn.turning = !!turn.target && way === "over";
     turn.phase = "settling";
     turn.grip = null;
     this.arm();
