@@ -14,18 +14,22 @@ const OUT = ".preview/emails";
 await mkdir(OUT, { recursive: true });
 
 /**
- * The wordmark is referenced at the production origin, which isn't live
- * yet — point it at the local file so the preview shows what the real
+ * The images are referenced at the production origin, which isn't live
+ * yet — point them at the local files so the preview shows what the real
  * email will show.
  */
 const localise = (html: string) =>
   html.replace(
-    /src="https?:\/\/[^"]*\/logo\.png"/g,
-    `src="file://${process.cwd()}/public/logo.png"`,
+    /src="https?:\/\/[^"/]+\/([^"]+\.png)"/g,
+    `src="file://${process.cwd()}/public/$1"`,
   );
 
 const files = {
-  "confirmation.html": confirmationEmail({ name: "Adaeze" }),
+  "confirmation.html": confirmationEmail({
+    name: "Adaeze Okonkwo",
+    message:
+      "We've just bought a Victorian terrace and would love help with the ground floor.\nKitchen, living room and a small study — somewhere calm to work from, with room for the children to read beside me. We're hoping to start in the spring.",
+  }).html,
   "notification.html": notificationEmail({
     name: "Adaeze Okonkwo",
     email: "adaeze.okonkwo@gmail.com",
@@ -33,7 +37,7 @@ const files = {
       "We've just bought a Victorian terrace and would love help with the ground floor.\nKitchen, living room and a small study.",
     heard: "A friend's home — she worked with you last year.",
     ip: "102.89.34.17",
-  }),
+  }).html,
 };
 
 for (const [name, html] of Object.entries(files)) {
