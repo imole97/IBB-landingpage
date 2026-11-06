@@ -17,7 +17,7 @@ const SWIPE_QUIET_MS = 140;
  * is for this long — and picks up again if the fingers move — before it's
  * taken as let go.
  */
-const RESTING_MS = 1600;
+const RESTING_MS = 3000;
 const SWIPE_THRESHOLD = 50;
 /** A press becomes a drag after moving this far. */
 const DEAD_ZONE = 8;
