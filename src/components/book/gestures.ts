@@ -11,13 +11,17 @@ const WHEEL_THRESHOLD = 40;
 /** A sideways trackpad swipe's stream has paused when it's been quiet this long. */
 const SWIPE_QUIET_MS = 140;
 /**
- * Fingers resting on a trackpad send nothing, so a hand holding the page
- * still to peek looks just like one that's been lifted. When the swipe
- * slowed to a stop, rather than coasting off, the page is held where it
- * is for this long — and picks up again if the fingers move — before it's
- * taken as let go.
+ * How long a page held still to peek stays held before it's let go: a
+ * little longer on phones and tablets than on a desktop.
+ *
+ * On a trackpad this is the only way to know: fingers resting there send
+ * nothing, so a hand holding the page still looks just like one that's
+ * been lifted. When the swipe slowed to a stop, rather than coasting off,
+ * the page is held for this long — and picks up again if the fingers move.
  */
-const RESTING_MS = 3000;
+const RESTING_MS = { handheld: 3000, desktop: 2000 };
+/** A finger moving less than this is holding still. */
+const STILL_PX = 3;
 const SWIPE_THRESHOLD = 50;
 /** A press becomes a drag after moving this far. */
 const DEAD_ZONE = 8;
@@ -37,6 +41,11 @@ type Options = {
 
 const reducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const restingMs = (frame: HTMLElement) =>
+  window.matchMedia("(pointer: coarse)").matches || frame.clientWidth < 1024
+    ? RESTING_MS.handheld
+    : RESTING_MS.desktop;
 
 const canHover = () => window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
@@ -88,13 +97,31 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
     forward: boolean | null;
     /** Pressed on a corner the mouse had lifted. */
     corner: boolean;
-    state: "pending" | "held" | "vertical" | "ignored";
+    /** ignored: not a turn. dropped: held still too long, and let go. */
+    state: "pending" | "held" | "vertical" | "ignored" | "dropped";
+    /** Where a finger holding the page last came to a stop. */
+    still: Pt | null;
   };
   let press: Press | null = null;
   /** A drag ends in a pointerup that the browser follows with a click. */
   let swallowClick = false;
   /** The corner the mouse is lifting, if any. */
   let lifted: boolean | null = null;
+  /** Lets go of a page a finger has held still for too long. */
+  let stillTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const holdStill = (p: Pt) => {
+    if (!press || press.mouse || press.state !== "held") return;
+    if (press.still && Math.hypot(p.x - press.still.x, p.y - press.still.y) < STILL_PX) return;
+    press.still = p;
+    clearTimeout(stillTimer);
+    const held = press;
+    stillTimer = setTimeout(() => {
+      if (press !== held || held.state !== "held") return;
+      held.state = "dropped";
+      turner.release();
+    }, restingMs(frame));
+  };
 
   const unlift = () => {
     if (lifted === null) return;
@@ -134,6 +161,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
       forward,
       corner: lifted !== null,
       state: "pending",
+      still: null,
     };
   };
 
@@ -142,7 +170,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
       if (e.pointerType === "mouse" && e.buttons === 0) hover(local(e));
       return;
     }
-    if (e.pointerId !== press.id || press.state === "vertical" || press.state === "ignored") {
+    if (e.pointerId !== press.id || (press.state !== "pending" && press.state !== "held")) {
       return;
     }
     const p = local(e);
@@ -174,17 +202,17 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
       window.getSelection()?.removeAllRanges();
     }
     turner.drag(p);
+    holdStill(p);
   };
 
   const onPointerUp = (e: PointerEvent) => {
     if (!press || e.pointerId !== press.id) return;
     const done = press;
     press = null;
+    clearTimeout(stillTimer);
     selecting(true);
-    if (done.state === "held") {
-      turner.release();
-      return;
-    }
+    if (done.state === "held") turner.release();
+    if (done.state === "held" || done.state === "dropped") return;
     const p = local(e);
     const dx = p.x - done.at.x;
     const dy = done.at.y - p.y; // positive = swiped up = read on
@@ -207,6 +235,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
     if (!press || e.pointerId !== press.id) return;
     if (press.state === "held") turner.release();
     press = null;
+    clearTimeout(stillTimer);
     selecting(true);
   };
 
@@ -274,7 +303,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
     if (!swipe) return;
     if (!resting && !coasting()) {
       // Stopped, not coasting: most likely resting on the page to peek.
-      quiet = setTimeout(() => letGoOfSwipe(true), RESTING_MS - SWIPE_QUIET_MS);
+      quiet = setTimeout(() => letGoOfSwipe(true), restingMs(frame) - SWIPE_QUIET_MS);
       return;
     }
     // Quiet by the clock may only mean the page was busy — the next page
@@ -359,6 +388,7 @@ export function bindGestures({ frame, turner, neighbour, go }: Options) {
   window.addEventListener("wheel", onWheel, { passive: true });
   return () => {
     clearTimeout(quiet);
+    clearTimeout(stillTimer);
     window.removeEventListener("pointerdown", onPointerDown);
     window.removeEventListener("pointermove", onPointerMove);
     window.removeEventListener("pointerup", onPointerUp);
