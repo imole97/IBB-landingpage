@@ -133,9 +133,7 @@ export async function POST(request: Request) {
       from,
       to: notify,
       replyTo: email,
-      subject: `New enquiry — ${name}`,
-      html: notificationEmail({ name, email, message, heard, ip }),
-      text: `New enquiry from ${name} <${email}>\n\n${message}${heard ? `\n\nHeard about us: ${heard}` : ""}\n\nIP: ${ip}\nAt: ${new Date().toISOString()}`,
+      ...notificationEmail({ name, email, message, heard, ip }),
     });
 
     if (notification.error) throw new Error(notification.error.message);
@@ -146,9 +144,7 @@ export async function POST(request: Request) {
       from,
       to: email,
       replyTo: site.email,
-      subject: `Thank you for getting in touch — ${site.name}`,
-      html: confirmationEmail({ name }),
-      text: `Dear ${name},\n\nThank you for getting in touch. We'll be in touch to begin your story.\n\n${site.name} — ${site.tagline}\n${site.url}`,
+      ...confirmationEmail({ name, message }),
     });
 
     if (confirmation.error) {
