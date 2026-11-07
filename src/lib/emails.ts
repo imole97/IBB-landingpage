@@ -1,44 +1,49 @@
+import { emailImages, type EmailImage } from "@/lib/emailImages";
 import { site, absoluteUrl } from "@/lib/site";
 
 /**
- * The studio's letters.
+ * The studio's emails, set as pages of the site's book.
  *
- * Each email is set as a loose page of the book: bone paper on a deeper
- * ground, one corner turned down, the book's running head across the top
- * and the pages it came from stacked beneath it. Everything else is left
- * out — the quiet is the point.
+ * Each one is built like an inner page of the site (InnerPage.tsx): bone
+ * paper, taupe brackets in the top-left and bottom-right corners, the
+ * running head — wordmark, ruled, with the title at the far margin — a
+ * title in the wordmark's hand, labels in tracked small capitals, and the
+ * page footer with the studio's email, Instagram, the way back to the
+ * site and the folio.
  *
  * Email-safe throughout: tables, inline styles, nothing that needs
  * JavaScript or a stylesheet to make sense. Comfortaa is offered to the
  * clients that can load it (Apple Mail, iOS); everywhere else falls back
- * to a rounded system face. The wordmark's hand, Dr Carbfred (the page
- * titles' face), can't be relied on in any client, so "Thank you" is
- * lettering in an image, with alt text styled to stand in when images
- * are blocked.
+ * to a rounded system face. Dr Carbfred, the wordmark's hand, can't be
+ * loaded by any client, so the title is lettering in an image, with alt
+ * text styled to stand in when images are blocked.
  *
- * Images are served from the live site (site.url), so they appear in
- * real emails once that deploy is up. The preview script points them at
- * public/ instead.
+ * Images travel with the email as inline attachments (see emailImages.ts),
+ * so they show wherever the email was sent from — a local build included.
  */
 
 // ─── Bone & Ink (src/app/globals.css) ───
 const GROUND = "#ECE6DB"; // around the page — page-deep
 const PAPER = "#F4F0E8"; // the page
-const FLAP = "#DFD6C8"; // the turned-down corner's underside
-const EDGE_1 = "#E4DDD1"; // pages stacked beneath, nearest first
-const EDGE_2 = "#DCD4C6";
-const HAIRLINE = "#DDD7CD"; // ink at 14% on bone, flattened for Outlook
-const ACCENT = "#9A8876"; // rules and ornaments only, never small text
-const LABEL = "#6E6052"; // small capitals
+const PLATE = "#ECE6DB"; // image plates — page-deep
+const PLATE_LINE = "#D9D1C4"; // the plate's inset frame
+const HAIRLINE = "#DDD7CD"; // --color-rule (ink at 14%), flattened for Outlook
+const ACCENT = "#9A8876"; // rules and brackets only, never small text
+const LABEL = "#6E6052"; // small capitals, folios
 const SOFT = "#55504A"; // running copy
 const INK = "#1C1B19"; // headings and primary text
 
 const FONT =
   "Comfortaa, ui-rounded, 'SF Pro Rounded', 'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
 
-/** The page's side margin; narrowed on a phone by the .ibb-pad rule. */
+/** The page's margin; narrowed on a phone by the .ibb-pad rule. */
 const MARGIN = 56;
-const CORNER = 30;
+/** How far the corner brackets sit in from the page's edge, and their size. */
+const BRACKET_INSET = 22;
+const BRACKET = 36;
+
+/** An image carried by the email, referenced by its content ID. */
+const cid = (name: EmailImage) => `cid:${name}`;
 
 /**
  * Anything a visitor typed goes through this before it touches the HTML —
@@ -65,100 +70,122 @@ const excerpt = (text: string, max = 280) => {
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
-/** "Thursday 6 November 2026 at 14:32", in London, where the studio reads it. */
-const londonTime = (at = new Date()) =>
-  new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/London",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(at);
-
 // ─── The page ───
 
 /**
  * The text a client shows beside the subject line, then enough invisible
- * filler that it doesn't carry on into the letter's own first words.
+ * filler that it doesn't carry on into the email's own first words.
  */
 const preheader = (text: string) =>
   `<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:${GROUND};">${text}${"&#847;&zwnj;&nbsp;".repeat(60)}</div>`;
 
-/**
- * The turned-down corner: the top-right of the page folded over, showing
- * the ground behind it and the paper's underside. Two borders meeting on
- * a diagonal draw it — no image, nothing to block.
- */
-const turnedCorner = `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-  <tr>
-    <td style="height:${CORNER}px;font-size:0;line-height:0;background:${PAPER};">&nbsp;</td>
-    <td width="${CORNER}" style="width:${CORNER}px;height:${CORNER}px;font-size:0;line-height:0;background:${PAPER};">
-      <div style="width:0;height:0;border-top:${CORNER}px solid ${GROUND};border-left:${CORNER}px solid ${FLAP};font-size:0;line-height:0;"></div>
-    </td>
-  </tr>
-</table>`;
+/** The L-shaped corner brackets (CornerBrackets, "tl-br"). */
+const bracket = (corner: "tl" | "br") => {
+  const edges =
+    corner === "tl"
+      ? `border-top:1px solid ${ACCENT};border-left:1px solid ${ACCENT};`
+      : `border-bottom:1px solid ${ACCENT};border-right:1px solid ${ACCENT};`;
+  return `
+<tr>
+  <td align="${corner === "tl" ? "left" : "right"}" style="padding:${corner === "tl" ? `${BRACKET_INSET}px 0 0 ${BRACKET_INSET}px` : `0 ${BRACKET_INSET}px ${BRACKET_INSET}px 0`};font-size:0;line-height:0;">
+    <div style="width:${BRACKET}px;height:${BRACKET}px;${edges}opacity:0.6;font-size:0;line-height:0;">&nbsp;</div>
+  </td>
+</tr>`;
+};
 
-/** The book's running head: the wordmark small, a title at the far margin, ruled beneath. */
+const hairline = `<div style="height:1px;line-height:1px;font-size:0;background:${HAIRLINE};">&nbsp;</div>`;
+
+/** The running head (RunningHead): the wordmark small, the title at the far margin, ruled beneath. */
 const runningHead = (title: string) => `
 <tr>
   <td class="ibb-pad" style="padding:0 ${MARGIN}px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
-        <td valign="bottom" style="padding:0 0 16px;">
+        <td valign="bottom" style="padding:0 0 12px;">
           <a href="${absoluteUrl("/")}" style="text-decoration:none;">
-            <img src="${absoluteUrl("/logo.png")}" width="112" alt="${site.name}"
-                 style="display:block;width:112px;height:auto;border:0;font-family:${FONT};font-size:14px;color:${INK};">
+            <img src="${cid("ibb-logo")}" width="150" alt="${site.name}"
+                 style="display:block;width:150px;max-width:150px;height:auto;border:0;font-family:${FONT};font-size:15px;color:${INK};">
           </a>
         </td>
-        <td valign="bottom" align="right" style="padding:0 0 18px;font-family:${FONT};font-size:10px;line-height:1;letter-spacing:0.45em;text-transform:uppercase;color:${LABEL};white-space:nowrap;">
+        <td valign="bottom" align="right" style="padding:0 0 14px;font-family:${FONT};font-size:10px;line-height:1;letter-spacing:0.4em;text-transform:uppercase;color:${LABEL};white-space:nowrap;">
           ${title}
         </td>
       </tr>
     </table>
-    <div style="height:1px;line-height:1px;font-size:0;background:${HAIRLINE};">&nbsp;</div>
+    ${hairline}
   </td>
 </tr>`;
 
-/** The 80×1px taupe rule. */
+/** The 80×1px taupe rule (Rule). */
 const rule = (space = 28) =>
   `<div style="width:80px;height:1px;line-height:1px;font-size:0;background:${ACCENT};margin:${space}px 0;">&nbsp;</div>`;
 
-/** The site's ornament: a small taupe diamond, and a hairline running from it. */
-const ornament = `
+/** A label (Label, size "sm"): tracked small capitals, 600 weight. */
+const label = (text: string, space = 0) =>
+  `<div style="margin:0 0 ${space}px;font-family:${FONT};font-size:12px;line-height:1.4;font-weight:600;letter-spacing:0.45em;text-transform:uppercase;color:${LABEL};">${text}</div>`;
+
+/** The page's title, in the wordmark's hand (ScriptHeading). */
+const scriptTitle = (image: EmailImage, alt: string, width: number) =>
+  `<img class="ibb-title" src="${cid(image)}" width="${width}" alt="${alt}"
+        style="display:block;width:${width}px;max-width:100%;height:auto;border:0;margin:0 0 30px;font-family:Georgia,serif;font-style:italic;font-size:44px;line-height:1.2;color:${INK};">`;
+
+/**
+ * A plate (.image-plate): the deeper paper, with a hairline frame inset
+ * like a mount. Here it holds words rather than a photograph.
+ */
+const plate = (inner: string) => `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
   <tr>
-    <td width="8" style="width:8px;padding:0 14px 0 1px;">
-      <div style="width:6px;height:6px;background:${ACCENT};transform:rotate(45deg);font-size:0;line-height:0;">&nbsp;</div>
-    </td>
-    <td style="width:100%;">
-      <div style="height:1px;line-height:1px;font-size:0;background:${HAIRLINE};">&nbsp;</div>
+    <td style="background:${PLATE};padding:8px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="ibb-plate" style="border:1px solid ${PLATE_LINE};padding:26px 28px;font-family:${FONT};">${inner}</td>
+        </tr>
+      </table>
     </td>
   </tr>
 </table>`;
 
-const label = (text: string, space = 0) =>
-  `<div style="margin:0 0 ${space}px;font-family:${FONT};font-size:11px;line-height:1.4;font-weight:600;letter-spacing:0.45em;text-transform:uppercase;color:${LABEL};">${text}</div>`;
+const footLink = `font-family:${FONT};font-size:11px;line-height:1.6;letter-spacing:0.2em;text-transform:uppercase;color:${SOFT};text-decoration:none;`;
 
-/** The pages the letter came from, stacked beneath it — the book's edges. */
-const pagesBeneath = `
-<tr><td style="padding:0 4px;"><div style="height:3px;line-height:3px;font-size:0;background:${EDGE_1};">&nbsp;</div></td></tr>
-<tr><td style="padding:0 9px;"><div style="height:3px;line-height:3px;font-size:0;background:${EDGE_2};">&nbsp;</div></td></tr>`;
-
-/** The page's foot: the ornament, the way back to the studio, the motto. */
-const pageFoot = `
+/**
+ * The page footer (PageFooter): the studio's email and Instagram on the
+ * left, the folio at the far margin, and the way to the site beneath.
+ */
+const pageFooter = (folio: string) => `
 <tr>
-  <td class="ibb-pad" style="padding:0 ${MARGIN}px 48px;">
-    ${ornament}
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;">
+  <td class="ibb-pad" style="padding:0 ${MARGIN}px 18px;">
+    ${hairline}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
-        <td class="ibb-stack" valign="top" style="font-family:${FONT};font-size:10px;line-height:2;letter-spacing:0.3em;text-transform:uppercase;">
-          <a href="${absoluteUrl("/")}" style="color:${SOFT};text-decoration:none;">interiorsbyb.net</a><span style="color:${ACCENT};">&nbsp;&nbsp;&middot;&nbsp;&nbsp;</span><a href="${site.instagram}" style="color:${SOFT};text-decoration:none;">Instagram</a>
+        <td valign="middle" style="padding:20px 0 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td class="ibb-stack" valign="middle" style="padding:0 26px 6px 0;">
+                <a href="mailto:${site.email}" style="${footLink}">${site.email}</a>
+              </td>
+              <td class="ibb-stack" valign="middle" style="padding:0 0 6px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td valign="middle" style="padding:0 10px 0 0;font-size:0;line-height:0;">
+                      <a href="${site.instagram}" style="text-decoration:none;">
+                        <img src="${cid("ibb-instagram")}" width="16" height="16" alt="" style="display:block;width:16px;height:16px;border:0;">
+                      </a>
+                    </td>
+                    <td valign="middle">
+                      <a href="${site.instagram}" style="${footLink}">${site.instagramHandle}</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         </td>
-        <td class="ibb-stack ibb-motto" valign="top" align="right" style="font-family:${FONT};font-size:12px;line-height:1.7;font-style:italic;color:${LABEL};white-space:nowrap;">
-          ${site.motto}
+        <td valign="top" align="right" style="padding:20px 0 6px 20px;font-family:${FONT};font-size:11px;line-height:1.6;letter-spacing:0.3em;text-transform:uppercase;color:${LABEL};white-space:nowrap;">${folio}</td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding:10px 0 0;">
+          <a href="${absoluteUrl("/")}" style="${footLink}letter-spacing:0.3em;">Visit the studio&nbsp;&nbsp;&rarr;</a>
         </td>
       </tr>
     </table>
@@ -167,11 +194,13 @@ const pageFoot = `
 
 const page = ({
   head,
+  folio,
   body,
   preview,
   postscript,
 }: {
   head: string;
+  folio: string;
   body: string;
   preview: string;
   /** A line in small type under the page, outside it. */
@@ -190,13 +219,14 @@ const page = ({
   body { margin:0; padding:0; }
   a { text-decoration:none; }
   @media (max-width: 560px) {
-    .ibb-ground { padding:24px 10px !important; }
-    .ibb-pad { padding-left:28px !important; padding-right:28px !important; }
+    .ibb-ground { padding:16px 8px !important; }
+    .ibb-pad { padding-left:26px !important; padding-right:26px !important; }
+    .ibb-body { padding-top:36px !important; padding-bottom:40px !important; }
     .ibb-stack { display:block !important; width:100% !important; text-align:left !important; }
-    .ibb-lettering { width:220px !important; }
+    .ibb-title { width:230px !important; }
+    .ibb-plate { padding:20px 18px !important; }
     .ibb-key { border-bottom:0 !important; padding-bottom:0 !important; }
     .ibb-value { padding-top:4px !important; }
-    .ibb-motto { padding-top:6px !important; }
   }
 </style>
 </head>
@@ -204,22 +234,22 @@ const page = ({
 ${preheader(preview)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${GROUND};">
   <tr>
-    <td class="ibb-ground" align="center" style="padding:56px 16px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+    <td class="ibb-ground" align="center" style="padding:48px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:640px;">
         <tr>
           <td style="background:${PAPER};">
-            ${turnedCorner}
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              ${bracket("tl")}
               ${runningHead(head)}
               ${body}
-              ${pageFoot}
+              ${pageFooter(folio)}
+              ${bracket("br")}
             </table>
           </td>
         </tr>
-        ${pagesBeneath}
         ${
           postscript
-            ? `<tr><td align="center" style="padding:28px 24px 0;font-family:${FONT};font-size:11px;line-height:1.8;color:${LABEL};">${postscript}</td></tr>`
+            ? `<tr><td align="center" style="padding:24px 24px 0;font-family:${FONT};font-size:11px;line-height:1.8;color:${LABEL};">${postscript}</td></tr>`
             : ""
         }
       </table>
@@ -230,16 +260,39 @@ ${preheader(preview)}
 </html>`;
 
 const bodyRow = (inner: string) =>
-  `<tr><td class="ibb-pad" style="padding:52px ${MARGIN}px 52px;font-family:${FONT};">${inner}</td></tr>`;
+  `<tr><td class="ibb-pad ibb-body" style="padding:48px ${MARGIN}px 56px;font-family:${FONT};">${inner}</td></tr>`;
 
-export type Letter = { subject: string; html: string; text: string };
+/** The images an email's HTML uses, attached inline so `cid:` finds them. */
+const attachmentsFor = (html: string) =>
+  (Object.keys(emailImages) as EmailImage[])
+    .filter((name) => html.includes(cid(name)))
+    .map((name) => ({
+      filename: emailImages[name].filename,
+      content: Buffer.from(emailImages[name].base64, "base64"),
+      contentType: "image/png",
+      contentId: name,
+    }));
+
+export type Letter = {
+  subject: string;
+  html: string;
+  text: string;
+  attachments: ReturnType<typeof attachmentsFor>;
+};
+
+const letter = (subject: string, html: string, text: string): Letter => ({
+  subject,
+  html,
+  text,
+  attachments: attachmentsFor(html),
+});
 
 // ─── To the person who wrote in ───
 
 /**
- * A thank-you, written as a letter: the script heading from the site, a
- * few lines from the studio, and their own words handed back to them so
- * they know exactly what arrived.
+ * A thank-you, set like the site's Contact page: the title in the
+ * wordmark's hand, a label, a few lines from the studio, and their own
+ * words handed back to them on a plate, so they know exactly what arrived.
  */
 export function confirmationEmail({
   name: rawName,
@@ -253,46 +306,41 @@ export function confirmationEmail({
   const note = escapeHtml(excerpt(rawMessage));
 
   const html = page({
-    head: "Correspondence",
+    head: "Contact Us",
+    folio: "v",
     preview: "Your note has reached the studio — we’ll be in touch within two working days.",
     postscript: `You&rsquo;re receiving this because you wrote to us at interiorsbyb.net.<br>${site.name} &middot; London &amp; Lagos`,
     body: bodyRow(`
-      <img class="ibb-lettering" src="${absoluteUrl("/email/thank-you.png")}" width="280" alt="Thank you"
-           style="display:block;width:280px;max-width:100%;height:auto;border:0;margin:0;font-family:Georgia,serif;font-style:italic;font-size:40px;line-height:1.2;color:${INK};">
+      ${scriptTitle("ibb-thank-you", "Thank you", 300)}
 
-      ${rule(30)}
+      ${label("Your story begins", 22)}
 
-      <p style="margin:0 0 22px;font-family:${FONT};font-size:18px;line-height:1.5;color:${INK};">
+      <p style="margin:0 0 20px;font-family:${FONT};font-size:18px;line-height:1.6;color:${INK};">
         Dear ${name},
       </p>
-      <p style="margin:0 0 20px;font-family:${FONT};font-size:15px;line-height:1.9;color:${SOFT};">
-        Your note has reached the studio, and we&rsquo;re already curious
-        about your space. We&rsquo;ll be in touch within two working days to
-        begin your story.
+      <p style="margin:0 0 18px;font-family:${FONT};font-size:16px;line-height:1.75;color:${SOFT};">
+        Thank you for writing to us. Your note has reached the studio, and
+        we&rsquo;re already curious about your space. We&rsquo;ll be in touch
+        within two working days.
       </p>
-      <p style="margin:0 0 40px;font-family:${FONT};font-size:15px;line-height:1.9;color:${SOFT};">
+      <p style="margin:0 0 40px;font-family:${FONT};font-size:14px;line-height:1.75;color:${SOFT};">
         If anything else comes to mind in the meantime &mdash; a photograph,
-        a floor plan, a feeling about a room &mdash; simply reply to this
-        letter.
+        a floor plan, a feeling about a room &mdash; simply reply to this email.
       </p>
 
       ${label("Your note", 16)}
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 44px;">
-        <tr>
-          <td style="border-left:1px solid ${ACCENT};padding:2px 0 2px 22px;font-family:${FONT};font-size:14px;line-height:1.85;font-style:italic;color:${SOFT};">
-            &ldquo;${note}&rdquo;
-          </td>
-        </tr>
-      </table>
+      ${plate(`<p style="margin:0;font-family:${FONT};font-size:14px;line-height:1.85;font-style:italic;color:${SOFT};">&ldquo;${note}&rdquo;</p>`)}
+
+      ${rule(40)}
 
       <p style="margin:0 0 6px;font-family:${FONT};font-size:15px;line-height:1.7;color:${SOFT};">
         With warmth,
       </p>
-      <p style="margin:0 0 4px;font-family:${FONT};font-size:17px;line-height:1.6;color:${INK};">
+      <p style="margin:0 0 6px;font-family:${FONT};font-size:17px;line-height:1.6;color:${INK};">
         ${site.name}
       </p>
-      <p style="margin:0;font-family:${FONT};font-size:10px;line-height:1.8;letter-spacing:0.45em;text-transform:uppercase;color:${LABEL};">
-        Interior Design Studio
+      <p style="margin:0;font-family:${FONT};font-size:11px;line-height:1.8;font-weight:600;letter-spacing:0.45em;text-transform:uppercase;color:${LABEL};">
+        ${site.tagline}
       </p>
     `),
   });
@@ -300,66 +348,63 @@ export function confirmationEmail({
   const text = [
     `Thank you, ${first}.`,
     "",
-    "Your note has reached the studio, and we're already curious about your space. We'll be in touch within two working days to begin your story.",
+    "Thank you for writing to us. Your note has reached the studio, and we're already curious about your space. We'll be in touch within two working days.",
     "",
-    "If anything else comes to mind in the meantime — a photograph, a floor plan, a feeling about a room — simply reply to this letter.",
+    "If anything else comes to mind in the meantime — a photograph, a floor plan, a feeling about a room — simply reply to this email.",
     "",
     "Your note:",
     `“${excerpt(rawMessage)}”`,
     "",
     "With warmth,",
     site.name,
+    site.tagline,
     "",
     "—",
-    `${site.motto}`,
-    `${site.url} · ${site.instagram}`,
+    `${site.email} · ${site.instagramHandle}`,
+    site.url,
   ].join("\n");
 
-  return { subject: `Thank you for writing — ${site.name}`, html, text };
+  return letter(`Thank you for writing — ${site.name}`, html, text);
 }
 
 // ─── To the studio ───
 
 /**
  * A new enquiry, set to be read at a glance: who, how to answer them, what
- * they said, and the details after. Replying to it goes straight to them.
+ * they said, and how they heard of the studio. Replying to it goes straight to them.
  */
 export function notificationEmail({
   name: rawName,
   email: rawEmail,
   message: rawMessage,
   heard: rawHeard,
-  ip: rawIp,
-  at = new Date(),
 }: {
   name: string;
   email: string;
   message: string;
   /** Their answer to "How did you hear about us?", if they gave one. */
   heard?: string;
-  ip: string;
-  at?: Date;
 }): Letter {
   const name = escapeHtml(rawName);
   const first = escapeHtml(firstName(rawName));
   const email = escapeHtml(rawEmail);
   const reply = `mailto:${encodeURIComponent(rawEmail)}?subject=${encodeURIComponent(`Your enquiry — ${site.name}`)}`;
-  const when = londonTime(at);
 
-  const detail = (key: string, value: string, last = false) => `
-    <tr>
-      <td class="ibb-stack ibb-key" valign="top" width="130" style="width:130px;padding:14px 0;${last ? "" : `border-bottom:1px solid ${HAIRLINE};`}font-family:${FONT};font-size:10px;line-height:1.9;letter-spacing:0.35em;text-transform:uppercase;color:${LABEL};">${key}</td>
-      <td class="ibb-stack ibb-value" valign="top" style="padding:14px 0;${last ? "" : `border-bottom:1px solid ${HAIRLINE};`}font-family:${FONT};font-size:13px;line-height:1.7;color:${SOFT};">${value}</td>
-    </tr>`;
-
-  const details = [
-    rawHeard ? ["Heard of us", escapeHtml(rawHeard)] : null,
-    ["Received", `${when} <span style="color:${LABEL};">London</span>`],
-    ["Sent from", escapeHtml(rawIp)],
-  ].filter((d): d is string[] => !!d);
+  // How they found the studio, if they said — the one detail worth keeping.
+  // (When it arrived, the inbox already shows.)
+  const heard = rawHeard
+    ? `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${HAIRLINE};">
+        <tr>
+          <td class="ibb-stack ibb-key" valign="top" width="130" style="width:130px;padding:16px 0 0;font-family:${FONT};font-size:10px;line-height:1.9;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:${LABEL};">Heard of us</td>
+          <td class="ibb-stack ibb-value" valign="top" style="padding:16px 0 0;font-family:${FONT};font-size:13px;line-height:1.7;color:${SOFT};">${escapeHtml(rawHeard)}</td>
+        </tr>
+      </table>`
+    : "";
 
   const html = page({
     head: "Enquiry",
+    folio: "v",
     preview: `${name} wrote: ${escapeHtml(excerpt(rawMessage, 110))}`,
     body: bodyRow(`
       ${label("A new enquiry", 22)}
@@ -372,17 +417,15 @@ export function notificationEmail({
 
       <p style="margin:0 0 40px;font-family:${FONT};font-size:15px;line-height:1.9;color:${INK};">${paragraphs(rawMessage)}</p>
 
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 44px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${heard ? 40 : 0}px;">
         <tr>
           <td style="background:${INK};">
-            <a href="${reply}" style="display:inline-block;padding:15px 30px;font-family:${FONT};font-size:11px;line-height:1;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:${PAPER};text-decoration:none;">Reply to ${first}</a>
+            <a href="${reply}" style="display:inline-block;padding:15px 30px;font-family:${FONT};font-size:11px;line-height:1;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:${PAPER};text-decoration:none;">Reply to ${first}&nbsp;&nbsp;&rarr;</a>
           </td>
         </tr>
       </table>
 
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${HAIRLINE};">
-        ${details.map(([k, v], i) => detail(k, v, i === details.length - 1)).join("")}
-      </table>
+      ${heard}
     `),
   });
 
@@ -391,15 +434,11 @@ export function notificationEmail({
     "",
     rawMessage,
     "",
-    "—",
-    rawHeard ? `Heard of us: ${rawHeard}` : null,
-    `Received: ${when} (London)`,
-    `Sent from: ${rawIp}`,
-    "",
+    rawHeard ? `Heard of us: ${rawHeard}\n` : null,
     "Replying to this email goes straight back to them.",
   ]
     .filter((l) => l !== null)
     .join("\n");
 
-  return { subject: `New enquiry — ${rawName}`, html, text };
+  return letter(`New enquiry — ${rawName}`, html, text);
 }

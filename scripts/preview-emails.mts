@@ -8,20 +8,24 @@
  * Run: npm run emails:preview  →  .preview/emails/*.html
  */
 import { mkdir, writeFile } from "node:fs/promises";
-import { confirmationEmail, notificationEmail } from "../src/lib/emails.js";
+import { confirmationEmail, notificationEmail, type Letter } from "../src/lib/emails.js";
 
 const OUT = ".preview/emails";
 await mkdir(OUT, { recursive: true });
 
 /**
- * The images are referenced at the production origin, which isn't live
- * yet — point them at the local files so the preview shows what the real
- * email will show.
+ * The images travel as inline attachments, referenced by `cid:` — which a
+ * browser can't follow — so the preview swaps each for the attachment's
+ * own bytes.
  */
-const localise = (html: string) =>
-  html.replace(
-    /src="https?:\/\/[^"/]+\/([^"]+\.png)"/g,
-    `src="file://${process.cwd()}/public/$1"`,
+const localise = ({ html, attachments }: Letter) =>
+  attachments.reduce(
+    (out, a) =>
+      out.replaceAll(
+        `cid:${a.contentId}`,
+        `data:${a.contentType};base64,${a.content.toString("base64")}`,
+      ),
+    html,
   );
 
 const files = {
@@ -29,18 +33,17 @@ const files = {
     name: "Adaeze Okonkwo",
     message:
       "We've just bought a Victorian terrace and would love help with the ground floor.\nKitchen, living room and a small study — somewhere calm to work from, with room for the children to read beside me. We're hoping to start in the spring.",
-  }).html,
+  }),
   "notification.html": notificationEmail({
     name: "Adaeze Okonkwo",
     email: "adaeze.okonkwo@gmail.com",
     message:
       "We've just bought a Victorian terrace and would love help with the ground floor.\nKitchen, living room and a small study.",
     heard: "A friend's home — she worked with you last year.",
-    ip: "102.89.34.17",
-  }).html,
+  }),
 };
 
-for (const [name, html] of Object.entries(files)) {
-  await writeFile(`${OUT}/${name}`, localise(html));
+for (const [name, letter] of Object.entries(files)) {
+  await writeFile(`${OUT}/${name}`, localise(letter));
   console.log(`${OUT}/${name}`);
 }
