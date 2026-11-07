@@ -1,7 +1,7 @@
 import { BookLink } from "@/components/book/BookLink";
 import { InstagramIcon } from "@/components/ui/InstagramIcon";
 import { Folio } from "@/components/ui/Ornament";
-import { neighbour, sectionByHref } from "@/lib/content";
+import { neighbour, pageLabel } from "@/lib/content";
 import { site } from "@/lib/site";
 
 const link =
@@ -14,7 +14,7 @@ const link =
  */
 export function PageFooter({ path, folio }: { path: string; folio: string }) {
   const nextHref = neighbour(path, 1);
-  const next = nextHref ? sectionByHref(nextHref) : undefined;
+  const next = nextHref ? { href: nextHref, label: pageLabel(nextHref) } : undefined;
 
   return (
     <footer className="page-footer">
