@@ -7,26 +7,29 @@
  *
  * Run: npm run emails:preview  →  .preview/emails/*.html
  */
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { confirmationEmail, notificationEmail, type Letter } from "../src/lib/emails.js";
 
 const OUT = ".preview/emails";
 await mkdir(OUT, { recursive: true });
 
 /**
- * The images travel as inline attachments, referenced by `cid:` — which a
- * browser can't follow — so the preview swaps each for the attachment's
- * own bytes.
+ * The images are referenced at the live site. The preview shows the ones
+ * in public/ now instead, written into the page itself — browsers won't
+ * let a page opened from disk load images from elsewhere on the disk.
  */
-const localise = ({ html, attachments }: Letter) =>
-  attachments.reduce(
-    (out, a) =>
-      out.replaceAll(
-        `cid:${a.contentId}`,
-        `data:${a.contentType};base64,${a.content.toString("base64")}`,
-      ),
-    html,
-  );
+const localise = async ({ html }: Letter) => {
+  const paths = [...new Set([...html.matchAll(/src="https:\/\/[^"/]+\/([^"]+\.png)"/g)].map((m) => m[1]))];
+  let out = html;
+  for (const path of paths) {
+    const data = (await readFile(`public/${path}`)).toString("base64");
+    out = out.replace(
+      new RegExp(`src="https://[^"/]+/${path.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}"`, "g"),
+      `src="data:image/png;base64,${data}"`,
+    );
+  }
+  return out;
+};
 
 const files = {
   "confirmation.html": confirmationEmail({
@@ -44,6 +47,6 @@ const files = {
 };
 
 for (const [name, letter] of Object.entries(files)) {
-  await writeFile(`${OUT}/${name}`, localise(letter));
+  await writeFile(`${OUT}/${name}`, await localise(letter));
   console.log(`${OUT}/${name}`);
 }
