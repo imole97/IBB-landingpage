@@ -4,8 +4,9 @@ Next.js 16 (App Router, TypeScript, Tailwind v4) for
 [interiorsbyb.net](https://www.interiorsbyb.net).
 
 The site is a book: a cover and four pages — About us, Our services, Our
-projects, Contact us — each a real route, turned with a page curl. Service and
-project detail pages exist as "Coming soon" until their content arrives.
+process, Contact us — each a real route, turned with a page curl. Our process
+opens onto its six stages, each a page of its own, read in sequence. Service
+detail pages exist as "Coming soon" until their content arrives.
 
 ## The design system comes first
 

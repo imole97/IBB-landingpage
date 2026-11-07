@@ -463,33 +463,6 @@ body {
   font-size: clamp(2.4rem, min(7cqw, 10cqh), 6.5rem);
 }
 
-/* Where a photograph will go: the page's ink, a hairline frame inset like
-   a mount, and a quiet caption. */
-.image-plate {
-  width: 100%;
-  background: linear-gradient(155deg, #ede7dc 0%, #e9e3d7 55%, var(--color-page-deep) 100%);
-  box-shadow: 0 24px 50px -30px rgb(28 27 25 / 0.25);
-}
-.image-plate::before {
-  content: "";
-  position: absolute;
-  inset: clamp(6px, 1.4cqh, 12px);
-  border: 1px solid rgb(28 27 25 / 0.12);
-  pointer-events: none;
-}
-.image-plate-caption {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  text-align: center;
-  font-size: 10px;
-  letter-spacing: 0.45em;
-  text-transform: uppercase;
-  color: var(--color-label);
-}
-
 /* ─── The foot of every page ─── */
 .page-footer {
   position: relative;
@@ -512,7 +485,8 @@ body {
 /* ─── Running copy, sized to the page ─── */
 .about-bio,
 .contact-lede,
-.coming-soon-summary {
+.coming-soon-summary,
+.process-intro {
   max-width: 24em;
   font-size: clamp(0.95rem, min(1.9cqw, 2.7cqh), 1.8rem);
   line-height: 1.55;
@@ -526,9 +500,6 @@ body {
 }
 .about-label {
   margin-bottom: clamp(0.5rem, 2cqh, 1.25rem);
-}
-.about-image {
-  height: clamp(90px, 16cqh, 180px);
 }
 .philosophy {
   margin-top: clamp(0.25rem, 1.5cqh, 1.5rem);
@@ -588,60 +559,47 @@ body {
 .service-row:hover .service-arrow {
   transform: translateX(4px);
 }
-.services-image {
-  height: clamp(90px, 22cqh, 340px);
-}
 
-/* ─── Projects ───
-   On a phone each project is a row — the picture beside its name — so all
-   three fit; on larger pages they stand side by side as tall plates. */
-.project-grid {
+/* ─── Process ───
+   The overview reads like the services page: the studio's intro, then
+   the six stages as rows. Each stage's page is its own words, set to
+   the page's measure. */
+.process-label {
+  margin-bottom: clamp(0.5rem, 2cqh, 1.25rem);
+}
+.process-layout {
   display: grid;
-  gap: clamp(0.9rem, 2.6cqh, 2rem) clamp(1.5rem, 3cqw, 3rem);
+  gap: clamp(1rem, 4cqh, 3rem) clamp(2.5rem, 5cqw, 6rem);
 }
-.project-card {
-  display: grid;
-  grid-template-columns: minmax(0, 0.42fr) minmax(0, 1fr);
-  grid-template-rows: auto auto auto;
-  column-gap: 1.25rem;
-  align-items: center;
+.process-intro {
+  max-width: 34em;
 }
-.project-image {
-  grid-area: 1 / 1 / 4 / 2;
-  height: clamp(84px, 15cqh, 160px);
-  transition: transform 0.6s var(--ease-book);
+.process-list {
+  margin-bottom: 0;
 }
-.project-kind {
-  grid-area: 1 / 2;
-  align-self: end;
-}
-.project-title {
-  grid-area: 2 / 2;
-  display: block;
-  margin-top: 0.35rem;
-  font-size: clamp(1rem, min(1.6cqw, 2.4cqh), 1.45rem);
-  font-weight: 300;
+.process-word {
+  font-weight: 600;
+  font-size: 0.82em;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
   color: var(--color-ink);
 }
-.project-open {
-  grid-area: 3 / 2;
-  align-self: start;
-  margin-top: 0.6rem;
-  font-size: 11px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--color-label);
+.process-list .service-row {
+  padding-block: clamp(0.5rem, 1.7cqh, 1.15rem);
 }
-.project-card:hover .project-image {
-  transform: translateY(-3px);
+.stage-rule {
+  margin-block: clamp(0.9rem, 3.5cqh, 2rem);
 }
-.project-open-arrow {
-  display: inline-block;
-  margin-left: 0.6rem;
-  transition: transform 0.3s;
+.stage-body {
+  display: grid;
+  gap: clamp(0.6rem, 2cqh, 1.25rem);
+  max-width: 42rem;
+  font-size: clamp(13px, min(1.5cqw, 2.2cqh), 18px);
+  line-height: 1.7;
+  color: var(--color-ink-soft);
 }
-.project-card:hover .project-open-arrow {
-  transform: translateX(4px);
+.stage-back {
+  margin-top: clamp(1rem, 4cqh, 2.5rem);
 }
 
 /* ─── Contact ─── */
@@ -684,7 +642,6 @@ body {
    larger screen, the philosophy tightens, and the contact page leaves the
    email to the footer — so every page still fits at a readable size. */
 @container (max-width: 599px) {
-  .about-image,
   .contact-intro-note {
     display: none;
   }
@@ -741,6 +698,18 @@ body {
   .philosophy-body {
     font-size: 13px;
     line-height: 1.5;
+  }
+  .process-intro {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .process-list .service-row {
+    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+    letter-spacing: 0.2em;
+  }
+  .stage-body {
+    font-size: 13.5px;
+    line-height: 1.6;
   }
 }
 
@@ -867,39 +836,7 @@ body {
     bottom: 0.1rem;
   }
 
-  /* ─── Projects: tall plates side by side ─── */
-  .project-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .project-card {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
-  }
-  .project-image {
-    grid-area: 1 / 1;
-    height: clamp(160px, 40cqh, 520px);
-  }
-  .project-open {
-    grid-area: 1 / 1;
-    z-index: 1;
-    align-self: end;
-    justify-self: end;
-    margin: clamp(0.9rem, 2.4cqh, 1.75rem);
-    font-size: 12px;
-    color: var(--color-ink);
-  }
-  .project-kind {
-    grid-area: 2 / 1;
-    margin-top: clamp(0.6rem, 2cqh, 1.25rem);
-  }
-  .project-title {
-    grid-area: 3 / 1;
-  }
-
-  /* ─── About: text and picture side by side, philosophy beneath ─── */
-  .about-image {
-    height: clamp(150px, 26cqh, 420px);
-  }
+  /* ─── About: the studio's words, philosophy beneath ─── */
   .philosophy-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -940,32 +877,24 @@ body {
 
 /* Wide pages: the mockup's columns. */
 @container (min-width: 900px) and (min-height: 561px) {
-  .about-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      "text image"
-      "phil phil";
-    align-items: center;
-  }
   .about-text {
-    grid-area: text;
-  }
-  .about-image {
-    grid-area: image;
-    height: clamp(200px, 40cqh, 480px);
-  }
-  .philosophy {
-    grid-area: phil;
+    max-width: 44rem;
   }
   .contact-layout {
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     align-items: start;
   }
+  /* The studio's words beside the six stages. */
+  .process-layout {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    align-items: center;
+  }
+  .process-intro {
+    font-size: clamp(0.95rem, min(1.45cqw, 2.5cqh), 1.4rem);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project-image,
-  .project-open-arrow,
   .service-arrow,
   .book-edges {
     transition: none;

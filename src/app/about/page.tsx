@@ -1,5 +1,4 @@
 import { InnerPage } from "@/components/page/InnerPage";
-import { ImagePlaceholder } from "@/components/page/ImagePlaceholder";
 import { ScriptHeading } from "@/components/page/ScriptHeading";
 import { Label } from "@/components/ui/Label";
 import { Rule } from "@/components/ui/Ornament";
@@ -33,11 +32,6 @@ export default function AboutPage() {
             <em className="text-ink not-italic">{site.name}</em> {about.bio}
           </p>
         </div>
-        <ImagePlaceholder
-          src={about.image}
-          alt="Inside a space designed by Interiors By B."
-          className="about-image"
-        />
 
         <section className="philosophy" aria-labelledby="philosophy-title">
           <Rule align="start" className="philosophy-rule" />

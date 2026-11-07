@@ -1,8 +1,7 @@
 import { BookLink } from "@/components/book/BookLink";
 import { InnerPage } from "@/components/page/InnerPage";
-import { ImagePlaceholder } from "@/components/page/ImagePlaceholder";
 import { ScriptHeading } from "@/components/page/ScriptHeading";
-import { sectionByHref, services, servicesImage } from "@/lib/content";
+import { sectionByHref, services } from "@/lib/content";
 import { pageMetadata } from "@/lib/metadata";
 
 const section = sectionByHref("/services")!;
@@ -37,13 +36,6 @@ export default function ServicesPage() {
           </li>
         ))}
       </ol>
-
-      <ImagePlaceholder
-        src={servicesImage}
-        alt="A finished interior by Interiors By B."
-        sizes="100vw"
-        className="services-image"
-      />
     </InnerPage>
   );
 }

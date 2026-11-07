@@ -8,7 +8,7 @@ import { site } from "@/lib/site";
 
 /**
  * The cover: the wordmark, the tagline beneath it, and the book's
- * contents — About us, Our services, Our projects, Contact us. "Open"
+ * contents — About us, Our services, Our process, Contact us. "Open"
  * turns to the first page.
  */
 export default function CoverPage() {
