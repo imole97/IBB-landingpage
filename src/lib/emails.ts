@@ -70,18 +70,6 @@ const excerpt = (text: string, max = 280) => {
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
-/** "Thursday 6 November 2026 at 14:32", in London, where the studio reads it. */
-const londonTime = (at = new Date()) =>
-  new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/London",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(at);
-
 // ─── The page ───
 
 /**
@@ -383,41 +371,36 @@ export function confirmationEmail({
 
 /**
  * A new enquiry, set to be read at a glance: who, how to answer them, what
- * they said, and the details after. Replying to it goes straight to them.
+ * they said, and how they heard of the studio. Replying to it goes straight to them.
  */
 export function notificationEmail({
   name: rawName,
   email: rawEmail,
   message: rawMessage,
   heard: rawHeard,
-  ip: rawIp,
-  at = new Date(),
 }: {
   name: string;
   email: string;
   message: string;
   /** Their answer to "How did you hear about us?", if they gave one. */
   heard?: string;
-  ip: string;
-  at?: Date;
 }): Letter {
   const name = escapeHtml(rawName);
   const first = escapeHtml(firstName(rawName));
   const email = escapeHtml(rawEmail);
   const reply = `mailto:${encodeURIComponent(rawEmail)}?subject=${encodeURIComponent(`Your enquiry — ${site.name}`)}`;
-  const when = londonTime(at);
 
-  const detail = (key: string, value: string, last = false) => `
-    <tr>
-      <td class="ibb-stack ibb-key" valign="top" width="130" style="width:130px;padding:14px 0;${last ? "" : `border-bottom:1px solid ${HAIRLINE};`}font-family:${FONT};font-size:10px;line-height:1.9;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:${LABEL};">${key}</td>
-      <td class="ibb-stack ibb-value" valign="top" style="padding:14px 0;${last ? "" : `border-bottom:1px solid ${HAIRLINE};`}font-family:${FONT};font-size:13px;line-height:1.7;color:${SOFT};">${value}</td>
-    </tr>`;
-
-  const details = [
-    rawHeard ? ["Heard of us", escapeHtml(rawHeard)] : null,
-    ["Received", `${when} <span style="color:${LABEL};">London</span>`],
-    ["Sent from", escapeHtml(rawIp)],
-  ].filter((d): d is string[] => !!d);
+  // How they found the studio, if they said — the one detail worth keeping.
+  // (When it arrived, the inbox already shows.)
+  const heard = rawHeard
+    ? `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${HAIRLINE};">
+        <tr>
+          <td class="ibb-stack ibb-key" valign="top" width="130" style="width:130px;padding:16px 0 0;font-family:${FONT};font-size:10px;line-height:1.9;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:${LABEL};">Heard of us</td>
+          <td class="ibb-stack ibb-value" valign="top" style="padding:16px 0 0;font-family:${FONT};font-size:13px;line-height:1.7;color:${SOFT};">${escapeHtml(rawHeard)}</td>
+        </tr>
+      </table>`
+    : "";
 
   const html = page({
     head: "Enquiry",
@@ -434,7 +417,7 @@ export function notificationEmail({
 
       <p style="margin:0 0 40px;font-family:${FONT};font-size:15px;line-height:1.9;color:${INK};">${paragraphs(rawMessage)}</p>
 
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 44px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${heard ? 40 : 0}px;">
         <tr>
           <td style="background:${INK};">
             <a href="${reply}" style="display:inline-block;padding:15px 30px;font-family:${FONT};font-size:11px;line-height:1;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:${PAPER};text-decoration:none;">Reply to ${first}&nbsp;&nbsp;&rarr;</a>
@@ -442,9 +425,7 @@ export function notificationEmail({
         </tr>
       </table>
 
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${HAIRLINE};">
-        ${details.map(([k, v], i) => detail(k, v, i === details.length - 1)).join("")}
-      </table>
+      ${heard}
     `),
   });
 
@@ -453,11 +434,7 @@ export function notificationEmail({
     "",
     rawMessage,
     "",
-    "—",
-    rawHeard ? `Heard of us: ${rawHeard}` : null,
-    `Received: ${when} (London)`,
-    `Sent from: ${rawIp}`,
-    "",
+    rawHeard ? `Heard of us: ${rawHeard}\n` : null,
     "Replying to this email goes straight back to them.",
   ]
     .filter((l) => l !== null)

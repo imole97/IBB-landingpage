@@ -40,7 +40,6 @@ const files = {
     message:
       "We've just bought a Victorian terrace and would love help with the ground floor.\nKitchen, living room and a small study.",
     heard: "A friend's home — she worked with you last year.",
-    ip: "102.89.34.17",
   }),
 };
 

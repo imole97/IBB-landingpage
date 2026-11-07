@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       from,
       to: notify,
       replyTo: email,
-      ...notificationEmail({ name, email, message, heard, ip }),
+      ...notificationEmail({ name, email, message, heard }),
     });
 
     if (notification.error) throw new Error(notification.error.message);
