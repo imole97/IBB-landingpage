@@ -8,8 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "logo:light": "node scripts/make-light-logo.mjs",
-    "emails:preview": "tsx scripts/preview-emails.mts",
-    "emails:images": "node scripts/make-email-images.mjs"
+    "emails:preview": "tsx scripts/preview-emails.mts"
   },
   "dependencies": {
     "next": "16.3.5",

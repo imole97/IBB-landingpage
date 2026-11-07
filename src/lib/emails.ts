@@ -1,4 +1,3 @@
-import { emailImages, type EmailImage } from "@/lib/emailImages";
 import { site, absoluteUrl } from "@/lib/site";
 
 /**
@@ -18,8 +17,11 @@ import { site, absoluteUrl } from "@/lib/site";
  * loaded by any client, so the title is lettering in an image, with alt
  * text styled to stand in when images are blocked.
  *
- * Images travel with the email as inline attachments (see emailImages.ts),
- * so they show wherever the email was sent from — a local build included.
+ * Images load from the live site. Email apps fetch them from the open
+ * web, so the address must be public: a local build's own (localhost) is
+ * unreachable from any inbox, and is swapped for the live domain. Images
+ * attached to the email instead (cid:) were tried, and some apps didn't
+ * show them.
  */
 
 // ─── Bone & Ink (src/app/globals.css) ───
@@ -42,8 +44,23 @@ const MARGIN = 56;
 const BRACKET_INSET = 22;
 const BRACKET = 36;
 
-/** An image carried by the email, referenced by its content ID. */
-const cid = (name: EmailImage) => `cid:${name}`;
+/**
+ * Where the emails' images are fetched from: the site's own address when
+ * it's public, otherwise the live domain.
+ */
+const PUBLIC_ORIGIN =
+  site.url.startsWith("https://") && !/localhost|127\.0\.0\.1/.test(site.url)
+    ? site.url
+    : "https://www.interiorsbyb.net";
+
+const IMAGES = {
+  logo: "/logo.png",
+  thankYou: "/email/thank-you.png",
+  instagram: "/email/instagram.png",
+} as const;
+
+/** An image from public/, at an address any inbox can reach. */
+const image = (name: keyof typeof IMAGES) => new URL(IMAGES[name], PUBLIC_ORIGIN).toString();
 
 /**
  * Anything a visitor typed goes through this before it touches the HTML —
@@ -103,7 +120,7 @@ const runningHead = (title: string) => `
       <tr>
         <td valign="bottom" style="padding:0 0 12px;">
           <a href="${absoluteUrl("/")}" style="text-decoration:none;">
-            <img src="${cid("ibb-logo")}" width="150" alt="${site.name}"
+            <img src="${image("logo")}" width="150" alt="${site.name}"
                  style="display:block;width:150px;max-width:150px;height:auto;border:0;font-family:${FONT};font-size:15px;color:${INK};">
           </a>
         </td>
@@ -125,8 +142,8 @@ const label = (text: string, space = 0) =>
   `<div style="margin:0 0 ${space}px;font-family:${FONT};font-size:12px;line-height:1.4;font-weight:600;letter-spacing:0.45em;text-transform:uppercase;color:${LABEL};">${text}</div>`;
 
 /** The page's title, in the wordmark's hand (ScriptHeading). */
-const scriptTitle = (image: EmailImage, alt: string, width: number) =>
-  `<img class="ibb-title" src="${cid(image)}" width="${width}" alt="${alt}"
+const scriptTitle = (name: keyof typeof IMAGES, alt: string, width: number) =>
+  `<img class="ibb-title" src="${image(name)}" width="${width}" alt="${alt}"
         style="display:block;width:${width}px;max-width:100%;height:auto;border:0;margin:0 0 30px;font-family:Georgia,serif;font-style:italic;font-size:44px;line-height:1.2;color:${INK};">`;
 
 /**
@@ -169,7 +186,7 @@ const pageFooter = (folio: string) => `
                   <tr>
                     <td valign="middle" style="padding:0 10px 0 0;font-size:0;line-height:0;">
                       <a href="${site.instagram}" style="text-decoration:none;">
-                        <img src="${cid("ibb-instagram")}" width="16" height="16" alt="" style="display:block;width:16px;height:16px;border:0;">
+                        <img src="${image("instagram")}" width="16" height="16" alt="" style="display:block;width:16px;height:16px;border:0;">
                       </a>
                     </td>
                     <td valign="middle">
@@ -225,8 +242,6 @@ const page = ({
     .ibb-stack { display:block !important; width:100% !important; text-align:left !important; }
     .ibb-title { width:230px !important; }
     .ibb-plate { padding:20px 18px !important; }
-    .ibb-key { border-bottom:0 !important; padding-bottom:0 !important; }
-    .ibb-value { padding-top:4px !important; }
   }
 </style>
 </head>
@@ -262,29 +277,12 @@ ${preheader(preview)}
 const bodyRow = (inner: string) =>
   `<tr><td class="ibb-pad ibb-body" style="padding:48px ${MARGIN}px 56px;font-family:${FONT};">${inner}</td></tr>`;
 
-/** The images an email's HTML uses, attached inline so `cid:` finds them. */
-const attachmentsFor = (html: string) =>
-  (Object.keys(emailImages) as EmailImage[])
-    .filter((name) => html.includes(cid(name)))
-    .map((name) => ({
-      filename: emailImages[name].filename,
-      content: Buffer.from(emailImages[name].base64, "base64"),
-      contentType: "image/png",
-      contentId: name,
-    }));
-
-export type Letter = {
-  subject: string;
-  html: string;
-  text: string;
-  attachments: ReturnType<typeof attachmentsFor>;
-};
+export type Letter = { subject: string; html: string; text: string };
 
 const letter = (subject: string, html: string, text: string): Letter => ({
   subject,
   html,
   text,
-  attachments: attachmentsFor(html),
 });
 
 // ─── To the person who wrote in ───
@@ -311,7 +309,7 @@ export function confirmationEmail({
     preview: "Your note has reached the studio — we’ll be in touch within two working days.",
     postscript: `You&rsquo;re receiving this because you wrote to us at interiorsbyb.net.<br>${site.name} &middot; London &amp; Lagos`,
     body: bodyRow(`
-      ${scriptTitle("ibb-thank-you", "Thank you", 300)}
+      ${scriptTitle("thankYou", "Thank you", 300)}
 
       ${label("Your story begins", 22)}
 
@@ -393,13 +391,8 @@ export function notificationEmail({
   // How they found the studio, if they said — the one detail worth keeping.
   // (When it arrived, the inbox already shows.)
   const heard = rawHeard
-    ? `
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${HAIRLINE};">
-        <tr>
-          <td class="ibb-stack ibb-key" valign="top" width="130" style="width:130px;padding:16px 0 0;font-family:${FONT};font-size:10px;line-height:1.9;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:${LABEL};">Heard of us</td>
-          <td class="ibb-stack ibb-value" valign="top" style="padding:16px 0 0;font-family:${FONT};font-size:13px;line-height:1.7;color:${SOFT};">${escapeHtml(rawHeard)}</td>
-        </tr>
-      </table>`
+    ? `${label("Heard of us", 12)}
+      <p style="margin:0 0 40px;font-family:${FONT};font-size:15px;line-height:1.75;color:${SOFT};">${escapeHtml(rawHeard)}</p>`
     : "";
 
   const html = page({
@@ -417,15 +410,15 @@ export function notificationEmail({
 
       <p style="margin:0 0 40px;font-family:${FONT};font-size:15px;line-height:1.9;color:${INK};">${paragraphs(rawMessage)}</p>
 
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${heard ? 40 : 0}px;">
+      ${heard}
+
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
         <tr>
           <td style="background:${INK};">
             <a href="${reply}" style="display:inline-block;padding:15px 30px;font-family:${FONT};font-size:11px;line-height:1;font-weight:600;letter-spacing:0.35em;text-transform:uppercase;color:${PAPER};text-decoration:none;">Reply to ${first}&nbsp;&nbsp;&rarr;</a>
           </td>
         </tr>
       </table>
-
-      ${heard}
     `),
   });
 
